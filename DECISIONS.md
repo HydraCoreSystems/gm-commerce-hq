@@ -35,3 +35,27 @@
 **Decision:** Prove the shared listing-draft model and Shopify draft-publishing workflow before implementing Etsy publication.
 
 **Reason:** This keeps the first end-to-end workflow smaller and avoids designing two marketplace integrations before the central model is validated.
+
+## 2026-08-01 — Existing SKUs enter GM Commerce from two source systems
+
+**Decision:** GM Commerce never requires manual SKU re-entry. Plant records are selected in Skrybix; non-plant records are selected in Product SKU Generator. Each source sends the already-assigned SKU and source record into GM Commerce.
+
+**Reason:** The SKU is the permanent business identity. Re-keying it would add labor and create avoidable inventory errors.
+
+## 2026-08-01 — GM Commerce owns the downstream commerce workflow
+
+**Decision:** After intake, GM Commerce owns photo-folder status, notes, AI processing state, listing drafts, review state, destination choices, marketplace relationships, and publishing state. Skrybix and Product SKU Generator remain authoritative only for their source identities and SKU creation.
+
+**Reason:** This preserves clear source boundaries while giving the commerce workflow one durable home.
+
+## 2026-08-01 — One canonical Listing Package supports every sales option
+
+**Decision:** GM Commerce is marketplace-agnostic. AI creates one canonical Listing Package for a SKU. Output adapters then use that package for Shopify, Etsy, both platforms, copy-and-paste sales sheets for Palm Street or Overgrown Oasis, and future sales channels.
+
+**Reason:** Listing intelligence should be created once rather than rewritten independently for each channel. Some channels have APIs; others require a human-friendly document or copy-ready view. Both are output targets from the same package.
+
+## 2026-08-01 — Human review remains before external publication
+
+**Decision:** AI-generated copy and prepared photos enter a review queue. Phil or Crystal chooses the destination channel or channels and approves the result before publication during Version 1.
+
+**Reason:** The system should remove repetitive work while preserving owner control over public listings and sales decisions.
