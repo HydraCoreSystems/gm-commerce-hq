@@ -155,6 +155,47 @@ check is server-side only.
 
 **Reason:** Phil's explicit architectural decision, made before any provider was implemented: GM Commerce must never be locked to one AI vendor. OpenAI was chosen as the first real provider because ChatGPT already serves as this project's coordinating PM, OpenAI's platform covers text/vision/structured-output/future capabilities in one place, and keeping Anthropic wired as a first-class option (not a fallback) gives a strong default today without a long-term vendor lock-in.
 
+## 2026-08-02 — "Standardized commerce backgrounds" means a mat, not a background swap
+
+**Decision:** GM Commerce's photo pipeline standardizes a non-square
+photo's canvas by padding it onto a solid, configurable brand-color mat
+(default a warm cream). It does not segment the product out of its real
+photographed scene and composite a different background behind it.
+
+**Reason:** True background replacement is a generative/object-removal
+operation, and both `PHOTO_PIPELINE_SCOPE.md` and `standards/
+PHOTO_STANDARD.md` require exactly that category of edit to be explicit,
+previewed, and human-approved, and kept out of Version 1's default path.
+A mat delivers the requested "premium, warm, clean, consistent" framing
+without ever touching the real, truthful content of the photograph.
+
+## 2026-08-02 — Photo alt text reuses the existing AI Provider abstraction, text-only
+
+**Decision:** Alt text for approved photo derivatives is generated
+through the same `AIProvider` interface and `AI_PROVIDER` switch already
+built for Listing Packages — one small, batched (per photo set, not per
+image), factual, runtime-validated request — rather than a new AI
+integration or a vision-capable call.
+
+**Reason:** Avoids introducing new AI infrastructure/cost for a
+Version-1-scoped feature; batching keeps cost proportionate to the
+feature's value. Text-only (facts, not pixels) keeps alt text honestly
+limited to what GM Commerce actually knows, the same content-integrity
+discipline already governing Listing Package generation.
+
+## 2026-08-02 — Photo processing concurrency uses guarded conditional updates, not the GMCOM-009 token pattern
+
+**Decision:** `photo_sets.status` transitions (pending → processing →
+needs_review → approved) are guarded with plain conditional updates
+(`.eq("status", expected)`), not the reserve/finalize/release lock-token
+mechanism built for AI generation.
+
+**Reason:** GMCOM-009's heavier mechanism exists specifically to prevent
+duplicate *paid* AI calls. Photo processing is local and unpaid — the
+real risk is wasted CPU and confusing UI state, which a guarded
+conditional update already prevents. Matching engineering weight to
+actual risk, not applying the same pattern everywhere by default.
+
 ## 2026-08-02 — Photos are a first-class commerce asset
 
 **Decision:** GM Commerce must prepare, standardize, optimize, and review product photos before any marketplace draft is created. Photo work is not a secondary attachment step; it is part of the canonical commerce package and must follow Gathering Moss photo standards.
