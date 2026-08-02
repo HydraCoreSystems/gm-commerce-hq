@@ -203,3 +203,49 @@ actual risk, not applying the same pattern everywhere by default.
 The photo pipeline must preserve originals, create standardized derivatives, avoid altering the product truthfully represented in the image, support human review, and produce marketplace-ready assets with known dimensions, orientation, crop, file type, quality, order, and status.
 
 **Reason:** Listing copy alone cannot produce strong sales. Product photos are often the first and most influential part of a listing, and inconsistent or poorly prepared images would undermine the quality of the entire GM Commerce workflow. Shopify and Etsy publishing should consume approved photo assets rather than raw uploads.
+
+## 2026-08-02 — Claude may self-approve real content only as an explicit, one-time, in-the-moment exception
+
+**Decision:** For GMCOM-012's real end-to-end verification, Claude marked
+`HY-LOB01-C04`'s Listing Package reviewed and its photo set approved
+itself, rather than waiting for Phil or Crystal. This was explicitly
+authorized by Phil in chat (offered as one of three options; he chose it,
+with ChatGPT's concurring recommendation to treat it as a development-only
+exception) — not a decision Claude made unilaterally. The standing rule
+("Human review remains before external publication," recorded 2026-08-01
+above) is unchanged: this was a single authorized exception for this
+verification, not a new standing practice. Claude will not self-approve
+real content again without equally explicit, in-the-moment authorization
+each time.
+
+**Reason:** Producing a genuine end-to-end verification (not a scratch/
+fake product) required a real reviewed listing and a real approved photo
+set, and none existed. The alternative — using throwaway test data instead
+— would have proven the mechanics but not actually exercised the real
+production path Phil explicitly asked to see working.
+
+## 2026-08-02 — Shopify auth supports both a static token and a client-credentials exchange
+
+**Decision:** `lib/shopify/real-client.ts` accepts either a static
+long-lived Admin API token (`SHOPIFY_ADMIN_API_ACCESS_TOKEN`, the classic
+custom-app `shpat_...` token) or Client ID + Secret
+(`SHOPIFY_CLIENT_ID`/`SHOPIFY_CLIENT_SECRET`), the latter exchanged for a
+short-lived (~24h) access token via `grant_type=client_credentials` and
+automatically re-exchanged before it expires.
+
+**Reason:** Discovered firsthand, not designed speculatively: Gathering
+Moss's actual Shopify store/plan does not offer the legacy static-token
+"custom app" flow at all — only the Dev-Dashboard client-credentials path
+was available. Supporting both modes means this code works regardless of
+which flow a given store's plan offers, and the token-refresh logic means
+the client-credentials path doesn't silently stop working a day after
+setup.
+
+**Operational note for whoever manages Shopify app credentials next:**
+changing an app's requested access scopes does NOT retroactively grant
+them to an already-installed instance of that app — the token exchange
+keeps succeeding, but every product-related call fails with silently-empty
+granted scopes until the app is uninstalled and reinstalled (or otherwise
+re-authorized) on the store. Cost real troubleshooting time to discover
+during GMCOM-012; recording it here so it isn't rediscovered the hard way
+again.
