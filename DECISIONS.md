@@ -71,3 +71,11 @@
 **Decision:** GM Commerce must have a best-in-class, visually polished GUI that makes the next correct action obvious without requiring technical knowledge, written instructions, or institutional memory. The interface must be usable by Phil, Crystal, and future employees with minimal training.
 
 **Reason:** GM Commerce is intended to become an operational system used repeatedly by different people. Its value depends not only on automation, but on reducing uncertainty, errors, and training time. The UI should communicate status, readiness, blockers, and the next action through layout, hierarchy, language, and feedback rather than expecting the user to understand the underlying architecture.
+
+## 2026-08-02 — Photos are a first-class commerce asset
+
+**Decision:** GM Commerce must prepare, standardize, optimize, and review product photos before any marketplace draft is created. Photo work is not a secondary attachment step; it is part of the canonical commerce package and must follow Gathering Moss photo standards.
+
+The photo pipeline must preserve originals, create standardized derivatives, avoid altering the product truthfully represented in the image, support human review, and produce marketplace-ready assets with known dimensions, orientation, crop, file type, quality, order, and status.
+
+**Reason:** Listing copy alone cannot produce strong sales. Product photos are often the first and most influential part of a listing, and inconsistent or poorly prepared images would undermine the quality of the entire GM Commerce workflow. Shopify and Etsy publishing should consume approved photo assets rather than raw uploads.
