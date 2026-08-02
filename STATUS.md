@@ -126,7 +126,7 @@ Phil or Crystal's actual review.
 
 ## Active Work
 
-- **Phil to provide or export the current Gathering Moss Shopify Products CSV for GMCOM-014 live-data validation.** The Commerce Audit workspace is built and verified with a representative Shopify-format fixture, but no production export was available in the app workspace.
+- **GMCOM-014 real-export smoke check attempted (2026-08-02) but blocked before load:** `products_export_1.csv` is not present in the GM Commerce worktree, any child directory, tracked branch file, or fetched remote branch. The requested 255-row / 42-product normalization, real-product grouping/filter results, and the `Plant Tags - set of 25` detail/rank therefore remain unverified until the exact export is provided. Static review confirms the audit path reads the selected file via `File.text()` into in-memory React state only; it has no upload, browser storage, Supabase, AI, Shopify, rewrite, or persistence path.
 
 - **Phil to run the GMCOM-011 migration SQL against the live Supabase
   project** (copy-paste block in
