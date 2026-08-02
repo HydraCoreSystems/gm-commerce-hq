@@ -51,6 +51,7 @@ a pinned Node version (`.nvmrc`), structured server logging, and
 server-action input validation (including SKU-derived photo-path
 traversal protection, now reused by GMCOM-011's image-serving route).
 
+**GMCOM-013/014 — Shopify Listing Audit Engine and Commerce Audit workspace are built on `hydracoresystems-listing-audit-engine` (`372d6f7` + `e50d95d`).** `/audit` is a strictly read-only, browser-local Shopify CSV workspace: deterministic 0-100 Commerce Scores, ranked improvement queue, score/category/status filters, and expandable source snapshots (title, description, SEO fields, tags, category, and findings). It does not upload the export, call AI, mutate Shopify, or rewrite copy. The reusable audit library is documented and covered by tests. **A current Gathering Moss Shopify CSV was not present in the application workspace, so real-export validation remains pending Phil providing/exporting that file.**
 ## Previous Milestone
 
 **GMCOM-008 complete and verified — the Listing Quality Engine is live.**
