@@ -482,14 +482,24 @@ $$;
 
 ## Recommended Next Action
 
-**Wire the Listing Package into a real Shopify draft** (GMCOM-010) — the
-same next step GMCOM-007 and GMCOM-008 both already pointed at, now that
-the reliability prerequisite GMCOM-009 explicitly asked to complete first
-is done. Read from a *reviewed* Listing Package (gated the same way
-`/review`'s publish stub already is), create a real Shopify draft product,
-and store the returned Shopify product ID back on the record. Per the
-existing "Shopify before Etsy" decision in `DECISIONS.md`. This does not
-strictly depend on Phil having run the GMCOM-009 migration yet (publishing
-reads an already-reviewed package and doesn't touch the generation-lock
-machinery) — but he should run it soon regardless, since generation itself
-is blocked until he does.
+**GMCOM-010 (Issue #9) — Establish migrations, CI, and safe operational
+baseline.** Note: while this session's work was in flight, ChatGPT (the
+project manager) pushed three commits to this repo defining a *different*
+next step than this handoff originally recommended — GMCOM-007/008's
+"Shopify next" recommendation is now superseded. See
+`handoffs/2026-08-02-photo-pipeline-priority.md`, `PHOTO_PIPELINE_SCOPE.md`,
+and the "Photos are a first-class commerce asset" entry in `DECISIONS.md`:
+photos are now a required pre-publishing stage (GMCOM-011, Issue #10), and
+the explicit sequencing is **GMCOM-009 → GMCOM-010 → GMCOM-011 (photos) →
+Shopify**, not GMCOM-009 → Shopify.
+
+GMCOM-010 (already filed, [Issue #9](https://github.com/HydraCoreSystems/gm-commerce-hq/issues/9))
+was scoped specifically not to overlap this issue's work: versioned
+Supabase migration files (this session's own migration was necessarily a
+single hand-authored copy-paste SQL block for Phil to run manually — the
+exact gap GMCOM-010 exists to close for every future schema change), a CI
+workflow, a pinned Node version, safe structured server logging, server-
+action input validation and photo-path traversal protection, and a
+deployment/runbook document. It explicitly excludes AI generation/
+concurrency/versioning logic (this issue's own territory), Shopify/Etsy,
+and authentication.

@@ -154,3 +154,11 @@ check is server-side only.
 **Decision:** GM Commerce never depends directly on any single AI vendor's SDK. A provider interface (`lib/ai/provider-types.ts`) sits between the Listing Generator and every vendor; the active provider (Mock, OpenAI, or Anthropic) is selected entirely through the `AI_PROVIDER` environment variable, never by editing code. Exactly one canonical prompt-building pipeline (`lib/ai/prompt-builder.ts`) and one Listing Package schema are shared by every provider — content integrity, tone, and business rules live there, never duplicated inside a provider implementation.
 
 **Reason:** Phil's explicit architectural decision, made before any provider was implemented: GM Commerce must never be locked to one AI vendor. OpenAI was chosen as the first real provider because ChatGPT already serves as this project's coordinating PM, OpenAI's platform covers text/vision/structured-output/future capabilities in one place, and keeping Anthropic wired as a first-class option (not a fallback) gives a strong default today without a long-term vendor lock-in.
+
+## 2026-08-02 — Photos are a first-class commerce asset
+
+**Decision:** GM Commerce must prepare, standardize, optimize, and review product photos before any marketplace draft is created. Photo work is not a secondary attachment step; it is part of the canonical commerce package and must follow Gathering Moss photo standards.
+
+The photo pipeline must preserve originals, create standardized derivatives, avoid altering the product truthfully represented in the image, support human review, and produce marketplace-ready assets with known dimensions, orientation, crop, file type, quality, order, and status.
+
+**Reason:** Listing copy alone cannot produce strong sales. Product photos are often the first and most influential part of a listing, and inconsistent or poorly prepared images would undermine the quality of the entire GM Commerce workflow. Shopify and Etsy publishing should consume approved photo assets rather than raw uploads.

@@ -22,6 +22,10 @@ passing; `npm run build` clean. **Not yet verified against the real
 Supabase project** — Claude has no way to execute the migration itself
 this session; full detail, and the exact copy-paste SQL block, in
 `handoffs/2026-08-02-GMCOM-009-atomic-versioned-validated-generation.md`.
+**Concurrently, ChatGPT defined GM Commerce's Version 1 photo pipeline
+scope** (`PHOTO_PIPELINE_SCOPE.md`, GMCOM-011/Issue #10) and sequenced it:
+GMCOM-009 + GMCOM-010 (operational baseline, Issue #9) first, then photos,
+then Shopify — see `handoffs/2026-08-02-photo-pipeline-priority.md`.
 
 ## Previous Milestone
 
@@ -108,22 +112,27 @@ Phil or Crystal's actual review.
 
 ## Next Highest-Priority Task
 
-**GMCOM-010 — Wire the Listing Package into a real Shopify draft** (per
-the existing "Shopify before Etsy" decision in `DECISIONS.md`). The
-reliability hardening GMCOM-009 explicitly asked to complete before
-Shopify work is done — this is the clear next gap: read from a *reviewed*
-package, create a real Shopify draft product, and store the returned
-Shopify product ID back on the record. Does not strictly require the
-GMCOM-009 migration to be applied first (publishing only reads an
-already-reviewed package), but Phil should run that migration soon
-regardless since generation itself is blocked until he does.
+**GMCOM-010 (Issue #9) — Establish migrations, CI, and safe operational
+baseline.** Per ChatGPT's own sequencing (`handoffs/2026-08-02-photo-
+pipeline-priority.md`): finish/reconcile GMCOM-009 and GMCOM-010 first,
+then GMCOM-011 (Issue #10, the photo preparation/approval pipeline —
+scope already defined in `PHOTO_PIPELINE_SCOPE.md`), and only then
+Shopify draft publishing. GMCOM-010 was scoped explicitly not to overlap
+GMCOM-009: versioned Supabase migration files (retiring reliance on
+`create table if not exists` to update existing databases — the exact gap
+GMCOM-009's handoff flagged), a CI workflow (build/typecheck/tests on
+push/PR — this repo had no CI before either), a pinned Node version, safe
+structured server logging, server-action input validation and photo-path
+traversal protection, and a deployment/runbook document. Does not touch
+AI generation/concurrency/versioning logic, Shopify/Etsy, auth, or the
+provider abstraction.
 
 ## AI Capacity
 
 | Contributor | Current role | Capacity status | Current assignment |
 |---|---|---|---|
-| ChatGPT | Project manager / reviewer / contributor | Available | Sequence Shopify draft publishing issue (GMCOM-010) |
-| Claude | Primary hands-on builder | Available | GMCOM-009 complete; awaiting next assignment |
+| ChatGPT | Project manager / reviewer / contributor | Available | Sequenced GMCOM-010 → GMCOM-011 (photos) → Shopify |
+| Claude | Primary hands-on builder | Available | GMCOM-009 complete; GMCOM-010 (Issue #9) recommended next |
 | GitHub Copilot | GitHub-native implementation contributor | Available | Completed GMCOM-003, GMCOM-005 |
 | Phil | Product owner / workflow validator | Available as schedule permits | Run GMCOM-009 migration SQL; review `HY-LOB01-C04`'s real Listing Package |
 
