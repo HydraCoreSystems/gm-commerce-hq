@@ -64,6 +64,8 @@ Phil or Crystal's actual review.
 
 ## Completed
 
+- **GMCOM-013/014 — Listing Audit Engine and read-only Commerce Audit workspace built** (`372d6f7`, `e50d95d`): local Shopify CSV parsing, transparent 0-100 scoring, ranking, score/category/status filtering, source-detail inspection, JSON reports, documentation, and test coverage. Real Gathering Moss export validation awaits the current CSV.
+
 - **GMCOM-011 — Photo preparation and approval pipeline built and
   file-level verified.** Commit `9ee8eec` on `main`, pushed. 34 new tests
   (60 total), `npm run typecheck`/`npm run build` clean. Migration not
@@ -123,6 +125,8 @@ Phil or Crystal's actual review.
   stash-pop; merged cleanly.
 
 ## Active Work
+
+- **Phil to provide or export the current Gathering Moss Shopify Products CSV for GMCOM-014 live-data validation.** The Commerce Audit workspace is built and verified with a representative Shopify-format fixture, but no production export was available in the app workspace.
 
 - **Phil to run the GMCOM-011 migration SQL against the live Supabase
   project** (copy-paste block in
