@@ -1,6 +1,6 @@
 # GM Commerce — Product & Architecture Reset
 
-**Status: Revision 3 (corrected) — finite architectural specification, awaiting Copilot's focused re-review of this corrected commit (`APPROVE FOR IMPLEMENTATION` / `APPROVE AFTER DOCUMENTED CORRECTIONS` / `REQUIRES REVISION 4`) before Phil authorizes any implementation sequence.**
+**Status: Revision 3 (twice-corrected) — Codex's independent re-review returned `APPROVE AFTER DOCUMENTED CORRECTIONS` (twelve finite corrections, no broad Revision 4 redesign required). This document now incorporates all twelve; awaiting Codex's targeted verification of these corrections before Phil authorizes any implementation sequence.**
 
 ## Revision 3 changelog (2026-08-03)
 
@@ -10,6 +10,27 @@ Copilot's independent review of Revision 2 (source: `gm-commerce` audit commit `
 2. **Fifteen finite architectural corrections** and **seven canonical architecture decisions**, each incorporated as an actual specification (interfaces, schemas, state machines) in its own section below, not a restated intention. A traceability table (§22) maps every correction to where it's addressed, what the concrete artifact is, how it's tested, which phase builds it, and what risk remains open.
 
 **Post-push correction (same day, before Copilot's re-review began):** the first push of this revision (`b2feb517`) itself mischaracterized `HY-LOB01-C04`'s test-session `commerce_details` values as "real data ... entered from facts Phil gave directly in chat." Phil caught and corrected this directly: the plant, its Skrybix record, and its photographs are real; the generated listing, price, commerce details, review approval, and Shopify draft were test artifacts, not a genuine owner-approved offering. §1's second paragraph is corrected in place, §1.1 adds database-change-control policy, §1.2 adds a general test-data quarantine/remediation process (applied first to `HY-LOB01-C04`, with no deletion or alteration of its records without Phil's explicit approval), and §25 adds an enforced `RecordContext` model (environment, record purpose, owner-approval genuineness, and eligibility for promotion/pricing/publication) so this class of mistake — a real inventory item's test data being treated as production truth — is structurally prevented going forward, not just corrected once in prose. §22.1 tracks these additions in the traceability table separately from Copilot's original fifteen.
+
+### Codex's independent re-review (2026-08-03): `APPROVE AFTER DOCUMENTED CORRECTIONS`
+
+Codex reviewed the corrected commit and returned **`APPROVE AFTER DOCUMENTED CORRECTIONS`** — twelve finite corrections, none requiring a broad Revision 4 redesign. Each is resolved in place below, with its own section reference:
+
+1. **Marketplace publication and public editorial content were one overloaded entity.** The old `Publication` entity conflated an immutable marketplace publish-attempt/receipt record with a public educational asset. Split into `MarketplacePublicationAttempt` (§5, §13, §22.2) and `EditorialAsset` (§5, §18) — `Publication` no longer exists as a type name in this document.
+2. **`CommercePackage` was SKU-level only.** Expanded with variant-level offer records, inventory-item references, per-variant price/compare-at price, quantity/inventory policy, SKU/barcode, weight/dimensions, shipping profile, tax/compliance attributes, exact-item vs. representative-item offer mode, variant media associations, option names/values, availability state, and market/currency context (§7).
+3. **A package-wide `evidenceRefs` array was insufficient lineage.** Every `CommercePackage` field/content block now carries its own field-level lineage — selected claim IDs, recommendation ID, `SelectionTrace` ID, confidence, applied policy versions, and owner-decision/override reference where applicable (§7).
+4. **The Repository contract (§9) was missing operations required elsewhere in this document.** Evidence (`ingestEvidence`, `getEvidenceRevision`, `searchEvidence`), claims (`verifyClaim`, `supersedeClaim`, `recordContradiction`, `resolveContradiction`), policies (`createPolicyVersion`, `queryApplicablePolicies`, `evaluatePolicy`), recommendations/packages (`createRecommendationRun`, `recordValidationResult`, `getCompletedPackage`), decisions/learning (`proposeCorrectionScope`, `activateRule`, `revokeRule`), and lineage (`getAuditTrail`, `getMarketplacePublicationLineage`, `getEditorialPublicationLineage`) are all now part of `IntelligenceRepositoryV1` (§9).
+5. **`SourceConnector` (§8) was missing operations real connectors need.** `health`, cursor-based pagination with a returned next cursor, connector/source schema versions, an observed-at timestamp, source provenance, access classification, an identifier-resolution method returning candidate matches with confidence, a structured change-feed result, idempotency keys for writeback, an approved command type in place of a generic payload, a structured writeback receipt, and explicit retry/error semantics are all added (§8). Writeback remains disabled by default and independently authorized.
+6. **`RecordContext.ownerApproval.genuine: boolean` (§25) collapsed two different meanings into one `false` value** — a record nobody has reviewed yet, and a documented test exception, were indistinguishable. Replaced with an explicit `approvalState: "not_required" | "pending" | "genuine" | "test_exception"`, with `testExceptionRef` required only for `test_exception` and reviewer identity/decision timestamp/`OwnerDecision` reference required for `genuine` (§25).
+7. **Eligibility flags (§25) had no stated default.** `knowledgePromotion`, `pricingAndPerformanceAnalysis`, and `publication` now default to `false` at both the database and API layer; a missing or null eligibility value fails closed, never open (§25).
+8. **`queryApplicableClaims`'s `environmentFilter` (§9) allowed ordinary cross-environment widening as a query parameter.** Removed. Production queries can never consume test/staging/development claims through the normal query path; cross-environment access now requires a separate, privileged operation carrying actor, reason, source/destination environment, correlation ID, and its own immutable audit event, scoped to audited promotion, authorized diagnostics, or fixture evaluation — diagnostic reads can never feed production recommendations or knowledge promotion (§9, §25).
+9. **Claim verification and promotion had no stated threshold beyond "no unresolved contradiction."** §10.1 now defines minimum corroboration by claim class, independent-source-family requirements, authority thresholds, freshness requirements, when a single authoritative primary source suffices, and which state transitions may be automated, which require an authorized verifier, and which always require Phil.
+10. **§19's Phase B0 correction capture referenced canonical `Correction` records that don't exist until Phase B.** A temporary `LegacyCorrectionEvent` (§14.1) closes the gap for Phase B0, with a defined migration into canonical `Correction` records once Phase B's entities and claims exist; test-derived corrections remain ineligible for migration.
+11. **Research-ingestion isolation relied on delimiters alone.** Expanded into a full untrusted-content handling pipeline: raw retrieved content stored separately and treated as untrusted, deterministic normalization/sanitization before extraction, no retrieved text ever placed in the system/developer instruction channel, extraction into bounded structured claim candidates, validators receiving only the candidate claim and minimal cited evidence spans, retrieved instructions ignored and logged as suspicious content, automatic promotion limited by source class and verification policy, and required adversarial prompt-injection fixtures across web pages, PDFs, OCR, supplier files, and OneDrive documents (§10).
+12. **Owner-minutes-per-SKU instrumentation (§20) didn't separate review/approval/correction/escalation/navigation time from unavoidable physical work**, and inferred duration only from widely spaced timestamps. Corrected with explicit time categories and defined start/stop event semantics (§20).
+
+**Additional documentation corrections from the same review:** the six source categories and eight evidence types are now stated in full in this document (§10) rather than by reference to Revision 2's history; §1.1 clarifies that migration reconciliation must *baseline* the already-applied live schema rather than re-execute its non-idempotent creation SQL, and requires a migration-ledger backfill/reconciliation record specifically for the direct-SQL incident; §1 restates that all four currently-failing local tests (`app/review/shopify-publish.test.ts`) remain documented as unresolved and that nothing merges until the retained code they cover has a fully passing suite; and `HY-LOB01-C04`'s records remain untouched — no deletion, quarantine action, or alteration — without Phil's explicit approval, unchanged from §1.2. §22.2 tracks all twelve corrections in the traceability table, alongside §22 (Copilot's original fifteen) and §22.1 (the same-day environment/test-data corrections).
+
+**No broad Revision 4 redesign was required or performed.** This remains Revision 3, corrected a second time in place. Per Codex's instruction, only this reset/status documentation moves in this pass — production implementation and Etsy work remain paused pending Codex's targeted verification of these twelve corrections.
 
 This revision does not soften Revision 2's substance — the vision, the completion test, the six-source and eight-evidence-type taxonomies, the manual-handoff inventory, and the Skrybix gap analysis all carry forward. What changes is that everything downstream of "Product Truth" is now specified as an actual system: canonical entities, a marketplace-neutral Commerce Package, a formal source-connector and Repository service contract, a compliance gate distinct from recommendations, catalog-scale non-functional requirements, and a corrected phase sequence that puts the completed-package review shell and correction-capture in Phase B0 — before the claim model itself — instead of leaving the legacy edit form as the default experience for months while the backend gets smarter underneath it.
 
@@ -53,6 +74,8 @@ One further discrepancy, more consequential than the code: the **live Supabase d
 
 **What Revision 3 does about this:** nothing in this document authorizes committing or pushing any of the above gm-commerce code or the undocumented database migration — Phil's instruction remains that only the reset and status documents move this turn. The disposition column above is Revision 3's *design* answer (retain/migrate/discard), not an action taken. Before Phase A of the revised sequence (§19) resumes, the live-database migration-file gap specifically should be resolved on its own, independent of whether Revision 3 is approved, since an unreproducible production schema is a risk regardless of which architecture eventually builds on top of it.
 
+**The four currently-failing tests remain documented as unresolved, not silently carried forward.** `app/review/shopify-publish.test.ts`'s 4 failures (of 105 total local tests) stay exactly as reported above until whichever future session resumes this code fixes the incomplete fixture update that caused them. Nothing built on top of the retained `gm-commerce` code in §1's disposition table may merge until the intended retained portions of that code have a fully passing local suite — a partially-fixed or newly-green-by-deletion suite does not satisfy this.
+
 ### 1.1 Database change control
 
 Direct-to-production SQL (exactly what created the undocumented `commerce_details`/`content_provenance` state above) is the specific failure this policy closes, stated as a standing rule rather than a one-time cleanup:
@@ -63,6 +86,8 @@ Direct-to-production SQL (exactly what created the undocumented `commerce_detail
 - CI must be able to build the complete schema from an empty database using only committed migrations — this is the actual test that would have caught today's gap immediately, and its absence is why it wasn't caught until Copilot's review.
 - CI must compare the expected migration set against the live database's migration ledger and fail on drift — so "the live database has something git doesn't know about" becomes a blocked deploy, not a discovery six phases later.
 - No phase in §23's sequence may depend on an uncommitted or unreproducible schema. Concretely: Phase A cannot be considered started until the current live-database gap is closed under this policy.
+- **Reconciling today's specific gap is a baseline operation, not a re-creation.** The live database already has `commerce_details` and `listing_packages.content_provenance`/`seo_title`/`seo_description` applied. The reconciliation migration must be written to **record** that this schema state already exists — a migration-ledger backfill entry stamped against the actual applied state — not to re-run the original `CREATE TABLE`/`ALTER TABLE` SQL a second time, which would fail non-idempotently (or silently no-op in a way that masks a real drift) against a database that already has these objects. The committed migration file's SQL must be verified to match what's actually live (column-by-column, constraint-by-constraint) before it's treated as reconciled — a migration that merely *looks* equivalent is not sufficient.
+- **A dedicated incident record accompanies the reconciliation**, per this policy's emergency-SQL requirement applied retroactively to the SQL already run this session: what was executed directly, when, why the normal path wasn't used, and confirmation that the backfilled migration-ledger entry plus committed migration file together reproduce the live state exactly. This incident record and the migration-ledger backfill are both required before Phase A is considered started, not optional cleanup alongside it.
 
 ### 1.2 `HY-LOB01-C04` test-data correction and remediation
 
@@ -96,7 +121,7 @@ Unchanged classification from Revision 2: (A) genuinely owner-only — final app
 
 *Correction #1, Decision #1.* This is the foundational gap Revision 2's own §11 self-critique identified and Copilot's review confirmed as the largest concrete hole: a claim model that's generic in the abstract still needs a real entity hierarchy underneath it, or "subject" stays an informally-typed string forever.
 
-**Seventeen canonical entity types**, each with a stable, opaque ID (ULID-shaped, independent of any source system's natural key) issued once and never reused, and each carrying a `RecordContext` (§25) that determines whether it's real production data, a test artifact, or a fixture — an entity being real never automatically makes the claims about it real, which matters immediately: §1's `HY-LOB01-C04` correction is the concrete case this distinction exists for.
+**Eighteen canonical entity types** (Codex Correction #1 splits the former `Publication` into two — see below), each with a stable, opaque ID (ULID-shaped, independent of any source system's natural key) issued once and never reused, and each carrying a `RecordContext` (§25) that determines whether it's real production data, a test artifact, or a fixture — an entity being real never automatically makes the claims about it real, which matters immediately: §1's `HY-LOB01-C04` correction is the concrete case this distinction exists for.
 
 ```
 ProductConcept   — an abstract thing Gathering Moss sells (e.g. "Hoya lobbii
@@ -148,10 +173,39 @@ CommercePackage  — the marketplace-neutral, versioned assembled package
                     (§7). N—1 SKU. 1—N MarketplaceListing.
 MarketplaceListing — one adapter's realization of a specific CommercePackage
                     version on one marketplace/shop (a Shopify draft, an
-                    Etsy listing). N—1 CommercePackage.
-Publication      — a public educational asset (care guide, article),
-                    distinct from MarketplaceListing (§17). 0—N link to
-                    ProductConcept/SKU (loose, editorial, not commerce).
+                    Etsy listing) — the current/latest realized state.
+                    N—1 CommercePackage. 1—N MarketplacePublicationAttempt.
+MarketplacePublicationAttempt — *(Codex Correction #1, new this revision.)*
+                    an immutable record of one attempt to publish a specific
+                    CommercePackage version to a specific MarketplaceListing:
+                    MarketplaceListing ID, CommercePackage version, adapter
+                    name + adapter version, the policy/compliance snapshot
+                    (§12) checked at attempt time, the outbound payload and
+                    its content hash, attempt timestamp, the remote
+                    response/receipt, remote product/listing IDs returned,
+                    verification result (§13 artifact 9's field-by-field
+                    confirmation, formalized as this entity), and
+                    failure/retry status. N—1 MarketplaceListing. Never
+                    mutated after creation — a republish is a new attempt,
+                    not an edit to a prior one. This is the entity that
+                    carries §13 artifact 9 and closes the gap the old,
+                    overloaded `Publication` entity left: a marketplace
+                    publish-attempt/receipt record is structurally nothing
+                    like a public educational asset, and conflating them
+                    lost the immutable-receipt requirement Copilot's review
+                    named.
+EditorialAsset   — *(Codex Correction #1; renamed from `Publication`, same
+                    slot in this list, no relation to commerce publishing.)*
+                    a public educational asset (care guide, article,
+                    species profile). Carries claim/evidence references
+                    (§6), license and attribution state per
+                    `EvidenceSource.sourceType` (§17), editorial approval
+                    (RBAC-tracked, §15), and its own publication/
+                    correction/retraction history as tracked events, never
+                    a silent delete (§18). 0—N link to ProductConcept/SKU
+                    (loose, editorial, not commerce) — distinct from
+                    MarketplaceListing/MarketplacePublicationAttempt, which
+                    are commerce-only.
 OwnerDecision    — Phil's or Crystal's explicit decision record (approval,
                     rejection, policy-setting, merge/split confirmation).
                     1—N Correction may reference the same OwnerDecision.
@@ -213,7 +267,65 @@ Claim {
 
 ## 7. Marketplace-neutral Commerce Package
 
-*Correction #2, Decision #2.* Adapters (Shopify today; Etsy, Whatnot, and future marketplaces later) must consume only a validated `CommercePackage` version and must never reconstruct business truth independently — directly closing the gap named in Revision 2's own §11 (`buildShopifyProductInput` today builds straight from Listing-Package-shaped input to Shopify-specific types, with no marketplace-neutral intermediate).
+*Correction #2, Decision #2. Expanded by Codex Corrections #2 and #3.* Adapters (Shopify today; Etsy, Whatnot, and future marketplaces later) must consume only a validated `CommercePackage` version and must never reconstruct business truth independently — directly closing the gap named in Revision 2's own §11 (`buildShopifyProductInput` today builds straight from Listing-Package-shaped input to Shopify-specific types, with no marketplace-neutral intermediate).
+
+**Codex Correction #2 — variant-level offers and exact-item disclosure.** The original schema was SKU-level only, which cannot represent a genuinely multi-variant product (Plant Pals and similar) without an adapter silently reconstructing offer-level business truth — exactly what adapters are forbidden from doing. `CommercePackage` now carries one or more `VariantOffer` records:
+
+```
+VariantOffer {
+  id: VariantOfferId
+  commercePackageId: CommercePackageId
+  variantId: VariantId | null       // null for a single-variant SKU offered
+                                     // directly at the SKU level
+  inventoryItemRefs: InventoryItemId[]   // which physical unit(s) this
+                                     // offer draws against
+  offerMode: "exact_item" | "representative_item"   // exact_item: this
+                                     // offer is for the specific physical
+                                     // unit(s) referenced above (a single
+                                     // rooted cutting); representative_item:
+                                     // this offer represents a stock class,
+                                     // fulfilled from any matching unit
+  sku: string
+  barcode: string | null
+  price: { amount: number, compareAtAmount: number | null, currency: string }
+  quantity: number
+  inventoryPolicy: InventoryPolicy
+  weight: { value: number, unit: WeightUnit }
+  dimensions: { length: number, width: number, height: number, unit: DimensionUnit } | null
+  shippingProfile: ShippingProfileRef
+  taxCode: string | null
+  complianceAttributes: Json         // marketplace/region-specific
+                                     // compliance flags (e.g. hazmat,
+                                     // restricted-plant/agricultural)
+  optionValues: { name: string, value: string }[]   // e.g. {size: "4in pot"}
+  mediaRefs: PhotoAssetId[]          // variant-specific images, distinct
+                                     // from the package's general image set
+  availability: "available" | "backordered" | "discontinued" | "sold_out"
+  marketContext: { marketId: string, currency: string }[] | null   // only
+                                     // where a marketplace supports
+                                     // per-market pricing/currency
+}
+```
+
+**Codex Correction #3 — field-level lineage.** A package-wide `evidenceRefs` array cannot answer "why is this exact value here" for a specific field, which is precisely the auditability §18's `SelectionTrace` is meant to provide at the recommendation level and which a flat array loses at the package level. Every field or content block below is individually addressable and carries its own `FieldLineage`:
+
+```
+FieldLineage {
+  fieldPath: string                 // e.g. "content.price",
+                                     // "offers[3].price", "content.title"
+  claimIds: ClaimId[]                // ≥1, except where the field is a
+                                     // direct owner override (see below)
+  recommendationId: RecommendationId | null
+  selectionTraceId: SelectionTraceId | null   // §18 — resolvable for any
+                                     // field that came from a Recommendation
+  confidence: Confidence
+  appliedPolicyVersions: PolicyId[]
+  ownerDecisionRef: OwnerDecisionId | null   // set, and claimIds/
+                                     // recommendationId may be empty, only
+                                     // when the field is a direct owner
+                                     // override with no upstream claim
+}
+```
 
 ```
 CommercePackage {
@@ -225,9 +337,6 @@ CommercePackage {
     title, description, salesSummary: string
     tags: string[]
     taxonomy: CanonicalTaxonomyRef      // not a marketplace-specific category
-    price: { amount: number, currency: string }
-    weight: { value: number, unit: WeightUnit }
-    inventoryPolicy: InventoryPolicy
     images: { assetRef: PhotoAssetId, order: number, altText: string }[]
     seoTitle, seoDescription: string
     careContent: string | null
@@ -235,7 +344,16 @@ CommercePackage {
                                            // each still queryable with its
                                            // own SelectionTrace (§18)
   }
-  evidenceRefs: ClaimId[]           // every field above traces to ≥1 claim
+  offers: VariantOffer[]            // ≥1; price/weight/inventory/shipping
+                                     // now live per-offer, not as
+                                     // package-level scalars — see
+                                     // Correction #2 above. A single-
+                                     // variant SKU has exactly one offer.
+  fieldLineage: FieldLineage[]      // replaces the old package-wide
+                                     // evidenceRefs array; one entry per
+                                     // addressable field/content block,
+                                     // including one per offer field —
+                                     // see Correction #3 above
   complianceResults: ComplianceCheckId[]   // §12, one per target marketplace
   readinessGateResult: GateResult
   createdAt: Timestamp
@@ -243,11 +361,13 @@ CommercePackage {
 }
 ```
 
-**Adapters are pure functions**: `(CommercePackage, marketplace-specific config) → MarketplaceListingPayload`. A Shopify adapter and a future Etsy adapter are equally thin siblings off the same canonical input — neither may query `commerce_details`, `listing_packages`, or any other business-truth table directly. This is the concrete fix for the Q9 gap Revision 2's own §11 named: today's Shopify publisher does exactly the thing this section forbids.
+**Adapters are pure functions**: `(CommercePackage, marketplace-specific config) → MarketplaceListingPayload`. A Shopify adapter and a future Etsy adapter are equally thin siblings off the same canonical input — neither may query `commerce_details`, `listing_packages`, or any other business-truth table directly. This is the concrete fix for the Q9 gap Revision 2's own §11 named: today's Shopify publisher does exactly the thing this section forbids. With `offers[]` now representing every variant explicitly, an adapter maps each `VariantOffer` to its marketplace's own variant/inventory-item shape mechanically — it still never invents a price, quantity, or shipping value that isn't already present on the offer it's mapping.
+
+Every `MarketplacePublicationAttempt` (§5) created from a `CommercePackage` version, on success or failure, is itself the artifact §13's ninth required item points to — the package and its field lineage answer "what was intended and why"; the attempt record answers "what actually happened when we tried to publish it."
 
 ## 8. `SourceConnector` contract
 
-*Correction #3, Decision #3.*
+*Correction #3, Decision #3. Expanded by Codex Correction #5.*
 
 ```
 interface SourceConnector {
@@ -271,30 +391,83 @@ interface SourceConnector {
   // remember.
   readonly environment: Environment
 
+  // Codex Correction #5 — versioning and liveness, required so a caller
+  // (or CI) can detect an incompatible connector/source schema change or a
+  // dead connector before it silently returns stale or malformed data.
+  readonly connectorSchemaVersion: string
+  readonly sourceSchemaVersion: string
+  health(): Promise<{ status: "healthy" | "degraded" | "down",
+                       detail: string, checkedAt: Timestamp }>
+
   getRecord(sourceRecordId: string): Promise<SourceRecordSnapshot>
-  listChangesSince(cursor: string): Promise<SourceRecordSnapshot[]>
+
+  // Codex Correction #5 — cursor-based pagination replaces an unbounded
+  // listChangesSince return; the caller always receives an explicit next
+  // cursor, including when there are currently no further changes (a
+  // repeatable cursor, not an implicit "empty means done").
+  listChangesSince(cursor: string | null):
+    Promise<{ changes: SourceRecordSnapshot[], nextCursor: string,
+              hasMore: boolean }>
+
   enumerateEvidence(sourceRecordId: string): Promise<EvidenceSourceRef[]>
 
+  // Codex Correction #5 — identifier resolution is its own method,
+  // returning candidates with confidence rather than a single assumed
+  // match, since a source system's natural key is not guaranteed to map
+  // 1:1 to a canonical SKU/ProductConcept (§5's merge/split model).
+  resolveIdentifier(sourceRecordId: string):
+    Promise<{ candidates: { entityType: EntityType, entityId: EntityId,
+                             confidence: Confidence }[] }>
+
   // Only callable if capabilities.writeback is true for this connector.
-  writeback(sourceRecordId: string, payload: WritebackPayload):
-    Promise<WritebackResult>
+  // Codex Correction #5 — writeback now takes an approved command type
+  // (an enumerated, per-connector allowlist, e.g. "acknowledge" |
+  // "reconcile_sale") rather than a generic payload, carries a caller-
+  // supplied idempotency key so a retried call cannot double-write, and
+  // returns a structured receipt plus explicit retry/error semantics
+  // instead of a bare success/failure.
+  writeback(sourceRecordId: string, command: ApprovedWritebackCommand,
+            idempotencyKey: string):
+    Promise<WritebackReceipt>
 }
 
 SourceRecordSnapshot {           // immutable — every fetch creates a new
   sourceSystem: string           // one, never mutates a prior snapshot,
   sourceRecordId: string         // the same discipline OneDrive's evidence
   snapshotAt: Timestamp          // revisions use (§16)
+  observedAt: Timestamp          // Codex Correction #5 — when the source
+                                  // system itself claims this state became
+                                  // true, distinct from snapshotAt (when
+                                  // GM Commerce fetched it); the two can
+                                  // legitimately differ under retry/backfill
   contentHash: string
   payload: Json                  // raw, as received
+  sourceProvenance: string       // Codex Correction #5 — exactly which
+                                  // endpoint/export/feed within
+                                  // `sourceSystem` this came from
+  accessClassification: "public" | "internal" | "restricted"   // Codex
+                                  // Correction #5 — drives who/what may
+                                  // read this snapshot, independent of
+                                  // RecordContext's environment scoping
   extractedClaims?: ClaimDraft[] // optional post-processing output
+}
+
+WritebackReceipt {               // Codex Correction #5
+  idempotencyKey: string
+  status: "applied" | "already_applied" | "rejected" | "failed_retryable" |
+          "failed_permanent"
+  remoteReference: string | null
+  appliedAt: Timestamp | null
+  errorDetail: string | null
+  retryAfter: Duration | null    // set only when status is failed_retryable
 }
 ```
 
-Identity resolution: a connector's `(sourceSystem, sourceRecordId)` pair maps to a canonical `SourceRecord` entity (§5); the further mapping to a `SKU`/`ProductConcept` is a separate, explicit table — never assumed 1:1, since a merge/split (§5) can change that mapping without touching the immutable snapshot history. Reads and writeback are structurally separate methods with independently gated capability flags, so a connector added purely for research (a supplier catalog feed, say) can never accidentally acquire write access by virtue of implementing the same interface.
+Identity resolution: a connector's `(sourceSystem, sourceRecordId)` pair maps to a canonical `SourceRecord` entity (§5); the further mapping to a `SKU`/`ProductConcept` is `resolveIdentifier`'s job above — a separate, explicit, confidence-scored operation, never assumed 1:1, since a merge/split (§5) can change that mapping without touching the immutable snapshot history. Reads and writeback are structurally separate methods with independently gated capability flags, so a connector added purely for research (a supplier catalog feed, say) can never accidentally acquire write access by virtue of implementing the same interface. Writeback remains disabled by default per connector and independently authorized (§15's RBAC) regardless of the approved-command-type allowlist above.
 
 ## 9. Intelligence Repository service contract
 
-*Correction #4, Decision #4.* A versioned command/query boundary — the "minimal Repository API" multiple parts of Copilot's review ask for is this same contract, not a separate one per caller (Skrybix, GM Commerce, OneDrive ingestion, audits, adapters, recommendations, and future systems all consume this same v1 surface):
+*Correction #4, Decision #4. Completed by Codex Correction #4; cross-environment access restricted by Codex Correction #8.* A versioned command/query boundary — the "minimal Repository API" multiple parts of Copilot's review ask for is this same contract, not a separate one per caller (Skrybix, GM Commerce, OneDrive ingestion, audits, adapters, recommendations, and future systems all consume this same v1 surface):
 
 ```
 interface IntelligenceRepositoryV1 {
@@ -303,24 +476,92 @@ interface IntelligenceRepositoryV1 {
   // Every write requires a RecordContext (§25) — there is no command that
   // creates a claim, correction, or decision without declaring its
   // environment, purpose, and eligibility up front.
+
+  // --- Evidence (Codex Correction #4) ---
+  ingestEvidence(evidence: EvidenceRevisionDraft, context: RecordContext,
+                 correlationId: CorrelationId): Promise<EvidenceRevisionId>
+  getEvidenceRevision(evidenceRevisionId: EvidenceRevisionId):
+    Promise<EvidenceRevision>
+  searchEvidence(query: EvidenceSearchQuery):   // scoped to the caller's
+                  // own environment by construction, same as
+                  // queryApplicableClaims below — no widening parameter;
+                  // cross-environment search goes through
+                  // requestCrossEnvironmentAccess like everything else
+    Promise<EvidenceSource[]>
+
+  // --- Claims ---
   proposeClaim(claim: ClaimDraft, context: RecordContext,
                correlationId: CorrelationId): Promise<ClaimId>
+  verifyClaim(claimId: ClaimId, verifierActor: ActorRef,   // Codex
+              verification: VerificationResult):            // Correction #4;
+    Promise<Claim>                                           // gated by
+                                                              // §10.1's
+                                                              // thresholds
+  supersedeClaim(claimId: ClaimId, supersededBy: ClaimId,
+                 reason: string): Promise<Claim>
+  recordContradiction(claimIds: ClaimId[], detail: string):
+    Promise<ContradictionId>
+  resolveContradiction(contradictionId: ContradictionId,
+                        resolution: ContradictionResolution):
+    Promise<Contradiction>
+
+  // --- Policies ---
+  createPolicyVersion(policy: PolicyDraft, context: RecordContext):
+    Promise<PolicyId>
+  queryApplicablePolicies(scope: Scope, asOf: Timestamp): Promise<Policy[]>
+  evaluatePolicy(policyId: PolicyId, subject: EntityRef):
+    Promise<PolicyEvaluationResult>
+
+  // --- Recommendations / packages ---
+  createRecommendationRun(input: RecommendationRunInput,
+                           correlationId: CorrelationId):
+    Promise<RecommendationRunId>
+  recordValidationResult(recommendationId: RecommendationId,
+                          result: ValidationResult): Promise<void>
+  getCompletedPackage(commercePackageId: CommercePackageId):
+    Promise<CommercePackage>      // §7 — includes offers[] and
+                                   // fieldLineage[] in full
+
+  // --- Decisions and learning ---
+  recordOwnerDecision(decision: OwnerDecisionDraft, context: RecordContext):
+    Promise<OwnerDecisionId>
   recordCorrection(correction: CorrectionDraft, context: RecordContext):
     Promise<CorrectionId>
+  proposeCorrectionScope(correction: CorrectionId):   // §14's eligible-
+    Promise<{ eligibleScopes: Scope[],                // scope derivation,
+               requiresConfirmation: boolean }>        // exposed as a query
+  activateRule(ruleProposal: RuleProposalId,
+               confirmedBy: OwnerDecisionId): Promise<Rule>   // §14 — never
+                                                        // callable without
+                                                        // an OwnerDecision
+                                                        // for any rule
+                                                        // broader than
+                                                        // SKU/InventoryItem
+  revokeRule(ruleId: RuleId, reason: string,
+             actor: ActorRef): Promise<void>
+
   promoteEvidence(evidenceRevisionId: EvidenceRevisionId):
     Promise<PromotionResult>      // gated on context.eligibility
                                    // .knowledgePromotion, §25
-  recordOwnerDecision(decision: OwnerDecisionDraft, context: RecordContext):
-    Promise<OwnerDecisionId>
+
+  // --- Lineage ---
+  getAuditTrail(correlationId: CorrelationId): Promise<AuditEvent[]>
+  getMarketplacePublicationLineage(marketplacePublicationAttemptId: MarketplacePublicationAttemptId):
+    Promise<{ commercePackage: CommercePackage,
+               fieldLineage: FieldLineage[],
+               attempt: MarketplacePublicationAttempt }>   // §5, §7, §13
+  getEditorialPublicationLineage(editorialAssetId: EditorialAssetId):
+    Promise<{ asset: EditorialAsset, claimIds: ClaimId[],
+               approvalHistory: OwnerDecisionId[] }>        // §5, §18
 
   // Queries — always return contradictions explicitly; never resolve them
-  // server-side before returning. `environmentFilter` defaults to the
-  // caller's own environment and must be explicitly widened to cross
-  // environments — see §25's "cross-environment references are
-  // prohibited unless performed through an explicit, audited promotion
-  // process."
-  queryApplicableClaims(subject: EntityRef, scope: Scope,
-                         environmentFilter?: Environment[]):
+  // server-side before returning. Codex Correction #8: `environmentFilter`
+  // is REMOVED as an ordinary widening parameter here — a production
+  // caller receives production-scoped results only, by construction.
+  // Cross-environment access (audited promotion, authorized diagnostics,
+  // or fixture evaluation) is a separate, privileged operation — see §25 —
+  // never an optional parameter on this query.
+  queryApplicableClaims(subject: EntityRef, scope: Scope):
     Promise<{ claims: Claim[], contradictions: Contradiction[] }>
   queryActiveRules(scope: Scope): Promise<Rule[]>   // production-only by
                                                      // construction — a
@@ -330,19 +571,70 @@ interface IntelligenceRepositoryV1 {
   getSelectionTrace(recommendationId: RecommendationId):
     Promise<SelectionTrace>       // §18
 
+  // Codex Correction #8 — the only sanctioned cross-environment path.
+  // Distinct from every command/query above, which are single-environment
+  // by construction. Requires its own elevated authorization (§15) beyond
+  // whatever role gates the equivalent same-environment operation.
+  requestCrossEnvironmentAccess(request: {
+    actor: ActorRef
+    reason: string
+    purpose: "audited_promotion" | "authorized_diagnostics" | "fixture_evaluation"
+    sourceEnvironment: Environment
+    destinationEnvironment: Environment
+    subject: EntityRef | ClaimId[]
+    correlationId: CorrelationId
+  }): Promise<{ result: Json, auditEventId: AuditEventId }>
+  // Diagnostic reads returned by this operation are structurally
+  // ineligible to feed a production recommendation run or a
+  // knowledgePromotion transition — enforced by the caller-role check on
+  // createRecommendationRun/promoteEvidence, not by caller discipline.
+
   // Contract metadata
   readonly schemaVersion: string  // this interface's own version, with a
                                    // defined backward-compatibility window
 }
 ```
 
-Authorization: every call carries a caller identity + role (§13's RBAC), checked before the command/query executes. A batch of claim writes belonging to one recommendation run is transactional — either all commit or none do, threaded by one `correlationId` per run, which is also what stitches together §13's nine required artifacts after the fact. Error semantics are structured codes (`NOT_FOUND`, `CONFLICT`, `POLICY_VIOLATION`, `STALE_VERSION`, `UNAUTHORIZED`), never a bare exception a caller has to string-match.
+Authorization: every call carries a caller identity + role (§15's RBAC), checked before the command/query executes. A batch of claim writes belonging to one recommendation run is transactional — either all commit or none do, threaded by one `correlationId` per run, which is also what stitches together §13's nine required artifacts after the fact. Error semantics are structured codes (`NOT_FOUND`, `CONFLICT`, `POLICY_VIOLATION`, `STALE_VERSION`, `UNAUTHORIZED`), never a bare exception a caller has to string-match.
 
 ## 10. Research layer: retrieval, verification, provenance, and ingestion security
 
-Carries forward Revision 2's six source categories and eight evidence types unchanged. Added this revision, per Correction #9 and the "additional requirements" list:
+**Six source categories** (the commerce-fact-ownership taxonomy, unchanged in substance since Revision 1, stated here in full per Codex's documentation correction rather than by reference to Revision 2's history):
 
-**Retrieved content is data, never instructions.** Every research call structurally separates the fixed system prompt from retrieved external content: retrieved text is always wrapped in an explicit delimiter with an instruction that content between the markers is untrusted and must never be treated as a command, regardless of what it appears to say. This is the direct, concrete defense against prompt injection via a poisoned source — not a general "be careful" note but a specific call-construction rule every research request must follow.
+1. Skrybix inventory/cutting data.
+2. Product/SKU commerce data (GM Commerce's own stored facts).
+3. Gathering Moss store/category defaults (policy, deterministic).
+4. Deterministic derived rules (e.g., exact-item disclosure from source system).
+5. AI research (verified, cited, confidence-scored).
+6. Genuine per-item human exception.
+
+**Eight evidence types** (a different, complementary axis: the *epistemic status* of a piece of knowledge, independent of which of the six categories produced it):
+
+1. External published research.
+2. Established horticultural consensus.
+3. Supplier/manufacturer claims.
+4. Community reports (lower default authority — unverified by construction until corroborated).
+5. Gathering Moss's own observations.
+6. Gathering Moss's own controlled experiments (highest-authority *research*-type evidence, since Phil/Crystal directly produced it).
+7. Owner decisions (outranks all research-type evidence per §6's precedence rule).
+8. AI-derived recommendations (never their own evidence — see §18's protections).
+
+A single claim's source category (the six above) and evidence type (the eight above) are recorded together — e.g., a care claim might be `source: AI research`, `evidenceType: established horticultural consensus`, with a specific evidence span and citation.
+
+Added this revision, per Correction #9 and the "additional requirements" list, and substantially expanded by **Codex Correction #11**:
+
+**Untrusted-content handling for research ingestion.** Delimiters alone are not sufficient prompt-injection protection — Codex's review is explicit that a determined adversarial document can still influence a call that merely wraps retrieved text in markers. The full pipeline every research/ingestion call must follow:
+
+1. **Raw retrieved content is stored separately from everything else** — its own record (an `EvidenceRevision`, §17), never inlined into a working prompt buffer shared with instructions or other content.
+2. **Deterministic normalization and sanitization run before any extraction** — encoding normalization, stripping of non-content control sequences, and structural parsing appropriate to the content type (HTML, PDF, OCR output) happen before an LLM ever sees the content, not as an afterthought.
+3. **Retrieved text is never placed in the system or developer instruction channel** — only in a clearly-scoped user/content channel, structurally separated by the provider API's own role mechanism, not by an in-band delimiter alone.
+4. **Extraction produces bounded structured claim candidates**, not free-form model output — the model's job on a retrieval call is to fill a constrained schema (claim predicate/value/evidence-span candidates), not to converse or follow embedded instructions.
+5. **Validators receive only the candidate claim and its minimal cited evidence span** — never the full retrieved document and never the original generation/ingestion context, so a validator has nothing to be manipulated by beyond the narrow thing it's checking.
+6. **Retrieved instructions are ignored and logged as suspicious content.** Any retrieved text that reads as an instruction directed at the pipeline (a "system prompt," a request to ignore prior instructions, an embedded command) is never followed, and its presence is itself recorded as a suspicious-content event for review — the same discipline this document's own instruction-source-boundary rule applies to Claude's own tool use, now formalized for the pipeline's research layer.
+7. **Automatic promotion is limited by source class and verification policy** — a claim extracted from an unvetted or low-authority source can never auto-promote regardless of how confidently it's phrased; §10.1 defines the actual thresholds.
+8. **Adversarial prompt-injection fixtures are required test coverage**, spanning web pages, PDFs, OCR output, supplier files, and OneDrive documents — a passing test suite for this layer must include documents that actively attempt to redirect pipeline behavior, not only well-formed benign content.
+
+**Retrieved content is data, never instructions**, restated as the governing principle the eight-step pipeline above implements: every research call structurally separates the fixed system prompt from retrieved external content, and no retrieved text is ever treated as a command, regardless of what it appears to say.
 
 **Source allowlists.** Research begins against a curated, versioned set of source types/domains, not an open web crawl — expanding the allowlist is itself a policy change (§14), reviewable the same as any other.
 
@@ -351,6 +643,24 @@ Carries forward Revision 2's six source categories and eight evidence types unch
 **Operational controls**, all real requirements for a service that makes paid, rate-limited calls: caching and deduplication (don't re-fetch identical content), rate limits and budgets per research run, a queue with bounded concurrency, retries with backoff, dead-letter handling for a request that can't complete, and per-run cost/latency telemetry — the same discipline §19's catalog-scale requirements demand of the pipeline generally, applied specifically to research.
 
 **Verification and conflict detection** carry forward from Revision 2 §6 unchanged: source ranking, citations with evidence spans, freshness, explicit rejected-source reasoning, and a precedence rule (owner decision > verified research > single-source claim > unverified assertion) that resolves a contradiction only when a resolution is actually needed — both sides of a genuine disagreement are retained as claims, never silently dropped.
+
+### 10.1 Verification and promotion thresholds
+
+*Codex Correction #9.* "No unresolved contradiction" is necessary but not sufficient to mark a claim `verified` (§18's lifecycle) — the review is explicit that a claim can be free of contradiction and still be under-evidenced. This section defines the actual bar, by claim class:
+
+- **Minimum corroboration by claim class:**
+  - *Deterministic/derived claims* (source categories 3–4, §10): zero additional corroboration required — the deterministic rule that produced them is itself the evidence, per §6's `evidenceAnchors` exception for this category.
+  - *General botanical/care claims* (evidence types 1–2, 5): at least two independent source families (see below), or one source meeting the "authoritative primary source" bar defined next.
+  - *Commerce-consequential claims* (price, weight, shipping, compliance, safety, marketplace policy): a single verified source is never sufficient on its own unless it is the authoritative primary source for that fact (Skrybix for a plant's physical state, the marketplace's own published policy page for a compliance rule, Gathering Moss's own controlled measurement for weight/dimensions) — otherwise two independent source families are required, and price/safety/compliance/marketplace claims additionally always route through §14's confirmation requirement before becoming a standing rule regardless of corroboration.
+  - *Community-report claims* (evidence type 4): never independently verified — always require corroboration from a higher-authority evidence type before `verified`, consistent with their lower default authority.
+- **Independent-source-family requirement:** per §10's lineage-based detection, corroboration must come from genuinely distinct source families, not multiple mirrors of one origin — a claim citing three same-family sources counts as single-source for this threshold.
+- **Authority thresholds:** an "authoritative primary source" is the system of record for that specific fact type (see the commerce-consequential bullet above) — a claim citing only that source may be verified without additional corroboration; a claim citing a secondary or tertiary source never qualifies for the single-source path regardless of how many secondary sources agree.
+- **Freshness requirement:** a claim's `freshnessPolicy` (§6) must not be expired at the moment `verified` is evaluated — an otherwise-qualifying claim past its freshness window is `STALE` for verification purposes and must be revalidated, not grandfathered in.
+- **Automated vs. verifier vs. Phil-required transitions:**
+  - *May be automated* (system executes `verifyClaim` without a human call): deterministic/derived claims meeting the corroboration bar above, and general botanical/care claims meeting the two-independent-source-family bar with no open contradiction and no expired freshness.
+  - *Requires an authorized verifier* (a role with the `verify claim` grant, §15 — may be Crystal or a future task-scoped role, not necessarily Phil): single-authoritative-primary-source claims outside the price/safety/compliance/marketplace categories, and any claim that met corroboration only after a contradiction was resolved (§6).
+  - *Always requires Phil*: every commerce-consequential claim class listed above (price, weight, shipping, compliance, safety, marketplace policy), regardless of corroboration — this mirrors and does not relax §14's existing confirmation rule for the same categories.
+- **Behavior when no adequate verification is available:** the claim remains in `under_review` indefinitely — never defaults to `verified` on a timeout, never defaults to rejected either (a genuinely unresourced verification is a known-unknown, not a negative finding), and is surfaced as a standing item on whichever review surface (§19's completed-package shell, or a future dedicated queue) tracks unresolved verification work.
 
 ## 11. Image understanding: vision-provider contract and inference boundaries
 
@@ -395,7 +705,7 @@ Fail-closed behavior: a `CommercePackage` cannot reach `approved` status while i
 6. Deterministic validation results (§11's readiness/repair checks, formalized as their own artifact rather than folded silently into a pass/fail).
 7. The recommendation package and field-level confidence (§7's `evidenceRefs`, §18's `SelectionTrace`).
 8. Owner overrides with rationale and scope (§14's `Correction` record).
-9. The final marketplace payload, its content hash, and the remote verification receipt (the pattern already proven in this session's real Shopify verification — field-by-field confirmation against Shopify's own response — generalized into a required artifact rather than a one-off manual check).
+9. The final marketplace payload, its content hash, and the remote verification receipt — now the canonical `MarketplacePublicationAttempt` entity (§5, §7), not an ad hoc log line: the pattern already proven in this session's real Shopify verification (field-by-field confirmation against Shopify's own response) generalized into a required, immutable, queryable artifact rather than a one-off manual check.
 
 ## 14. Owner-authority, durable learning, and correction-scope inference
 
@@ -408,6 +718,35 @@ Fail-closed behavior: a `CommercePackage` cannot reach `approved` status while i
 - **Item-level owner overrides are always preserved.** A later broader rule can never silently supersede an explicit override Phil made for one specific item — the override's `OwnerDecision` outranks any subsequently-created rule for that item by construction (§6's precedence model).
 - **Positive and negative replay tests are required before a new rule activates**: a fixture case the rule *should* apply to, and a fixture case it should *not* — both asserted, not just the positive case, mirroring the audit's own "Owner-correction learning" evaluation criterion exactly.
 - **Sales-performance correlation is never promoted directly into an autonomous rule.** A performance observation can produce a *recommendation* or a *proposal* for Phil to confirm; it can never become an active rule on its own, closing the correlation-versus-causation gap the review named explicitly.
+
+### 14.1 Phase B0 correction sequencing: `LegacyCorrectionEvent`
+
+*Codex Correction #10.* §19 places completed-package review and correction-*capture* in Phase B0, deliberately before Phase B builds the canonical entity/claim model — but a canonical `Correction` record (§5) references a `Claim` or `Recommendation` ID, neither of which exists yet in Phase B0. Without a fix, §19's own "every edit made through the legacy form is also captured as a correction event" instruction has no valid record type to write into. A temporary, explicitly-scoped type closes the gap:
+
+```
+LegacyCorrectionEvent {
+  id: LegacyCorrectionEventId
+  legacyPackageIdentifier: string   // whatever identifies the edited
+                                     // record under the pre-Phase-B model
+                                     // (today: a listing_packages row id)
+  legacyFieldIdentifier: string     // the specific field/column edited
+  beforeValue: Json
+  afterValue: Json
+  actor: ActorRef
+  reason: string
+  timestamp: Timestamp
+  context: RecordContext            // §25 — environment and purpose apply
+                                     // to a LegacyCorrectionEvent exactly
+                                     // as to any other record; a
+                                     // test-environment edit produces a
+                                     // test-context event, never eligible
+                                     // for migration below
+  correlationId: CorrelationId
+  migrationStatus: "pending" | "migrated" | "ineligible"
+}
+```
+
+**Migration into canonical `Correction` records.** Once Phase B's entities and claims exist for the record a `LegacyCorrectionEvent` describes, a migration job attempts to resolve `legacyPackageIdentifier`/`legacyFieldIdentifier` to a canonical `(EntityType, EntityId, predicate)` and, where a corresponding `Claim` or `Recommendation` can be identified, creates the equivalent `Correction` record referencing it, then marks the event `migrated`. Where no canonical claim/recommendation can be resolved (the field never got a canonical equivalent, or the record was retired before migration ran), the event is marked `ineligible` and retained as history — never silently dropped. **Test-derived `LegacyCorrectionEvent`s are always `ineligible`** — a `context.recordPurpose` other than `"operational"` (§25) excludes an event from migration into a canonical `Correction` unconditionally, the same rule §25's hard invariants already apply to test-context claims generally. This is Phase B0's answer to Codex's sequencing objection: correction signal is captured from day one of B0 in a type that's honest about not yet being canonical, and migrates forward once the model it needs actually exists, rather than either being lost during the transition or forcing a premature `Correction` schema into Phase B0.
 
 ## 15. Role-based access control
 
@@ -505,7 +844,7 @@ SelectionTrace {
 
 This is the concrete mechanism behind two things Revision 2's own §11 named as under-specified: source-precedence disclosure (Q8) and "why did the system pick this value" auditability generally. It's also part of the answer to "the minimal Repository API needed by Skrybix, GM Commerce, OneDrive ingestion, audits, adapters, recommendations, and future systems" — every one of those callers can ask the same question of the same contract.
 
-**Public editorial safeguards**, per Correction #15: `Publication` (§5) is a versioned entity, same discipline as `CommercePackage` — every public factual claim requires claim-to-evidence validation before publish (same independent-validation pass as commerce copy, §11 of Revision 2, not a separate weaker check); citation, copyright, license, and attribution rules apply per `EvidenceSource.sourceType` (quoting a copyrighted reference at length even with a citation is still a license question, not just an attribution one); the editorial approver's identity is RBAC-tracked (§15) and may differ from commerce approvers; publication history is versioned and a `Publication` can be corrected, retracted, or taken down as a tracked event, never a silent delete; customer feedback is evidence-type `community_report` (Revision 2 §6's taxonomy) — research input to investigate, never accepted as truth until independently verified.
+**Public editorial safeguards**, per Correction #15: `EditorialAsset` (§5 — renamed from `Publication` per Codex Correction #1, which also separated marketplace publication into its own `MarketplacePublicationAttempt` entity so this section's guarantees apply only to genuine public editorial content, never to a commerce listing) is a versioned entity, same discipline as `CommercePackage` — every public factual claim requires claim-to-evidence validation before publish (same independent-validation pass as commerce copy, §11 of Revision 2, not a separate weaker check); citation, copyright, license, and attribution rules apply per `EvidenceSource.sourceType` (quoting a copyrighted reference at length even with a citation is still a license question, not just an attribution one); the editorial approver's identity is RBAC-tracked (§15) and may differ from commerce approvers; publication history is versioned and an `EditorialAsset` can be corrected, retracted, or taken down as a tracked event, never a silent delete, queryable via `getEditorialPublicationLineage` (§9); customer feedback is evidence-type `community_report` (§10's taxonomy) — research input to investigate, never accepted as truth until independently verified.
 
 ## 19. Completed-package review shell (Phase B0) and catalog-scale requirements
 
@@ -524,7 +863,11 @@ This directly closes the catalog-scale gap Revision 2's own §11 flagged as enti
 
 ## 20. Operational instrumentation
 
-*Correction #14.* Every metric from Revision 2 §13 plus Copilot's precision requirements: owner minutes per SKU, unnecessary escalation rate (with necessity **classified at the moment the escalation occurs**, not inferred retroactively — closing the exact gap Revision 2's own §11 flagged), factual-error events, citation freshness, correction reuse, recommendation outcomes, performance observations, and staff-equivalent throughput per owner hour.
+*Correction #14. Owner-minutes precision added by Codex Correction #12.* Every metric from Revision 2 §13 plus Copilot's precision requirements: owner minutes per SKU, unnecessary escalation rate (with necessity **classified at the moment the escalation occurs**, not inferred retroactively — closing the exact gap Revision 2's own §11 flagged), factual-error events, citation freshness, correction reuse, recommendation outcomes, performance observations, and staff-equivalent throughput per owner hour.
+
+**Owner minutes per SKU, decomposed** (Codex Correction #12 — the prior single number conflated categories that need to be distinguishable): review time, approval/rejection time, correction time, escalation-resolution time, and required navigation-or-data-entry time are each their own tracked category, summed for the headline "owner minutes per SKU" figure but always queryable individually. **Physical product work — taking photographs, handling a cutting, packing a shipment — is classified separately from all five software-administrative categories above**, specifically so the system can distinguish unavoidable physical labor (which no software change reduces) from software-created administrative labor (which is exactly what this reset is meant to shrink); a metric that blends the two would make software-caused overhead invisible inside genuinely unavoidable physical time.
+
+**Start/stop event semantics**, replacing duration-inferred-from-timestamps: each of the five administrative categories above is bounded by an explicit start event and stop event (e.g. `review_started` / `review_submitted`, `correction_started` / `correction_saved`, `escalation_raised` / `escalation_resolved`), both carrying `correlationId` and `actor`. Duration is the stop-minus-start delta for a matched pair, never inferred from the gap between two otherwise-unrelated timestamps (a prior approach that would misattribute idle time — a lunch break between opening a review and submitting it — as owner effort). A start event with no matching stop event within a defined timeout is reported as "session abandoned or unresolved," a distinct outcome from a fast completion, never silently excluded from the metric or counted as zero duration.
 
 - **Baseline period:** the pre-reset historical average where derivable (git/session history for time-per-SKU under the fully manual flow); where not derivable, a defined first-N-SKU baseline measured going forward under Revision 3's own pipeline, stated explicitly as a baseline rather than compared against nothing.
 - **Formulas** are defined per metric against the artifacts in §13 — e.g. owner minutes per SKU sums correction-event duration plus escalation resolution time, grouped by `correlationId`'s originating SKU.
@@ -538,7 +881,7 @@ The original response table (Revision 2 §11) is preserved in git history at com
 
 | Revision 2's named gap | Resolved in Revision 3 |
 |---|---|
-| No formal canonical-entity schema (Q9) | §5 — seventeen typed entities, cardinalities, stable IDs, lifecycle ownership, merge/split resolution |
+| No formal canonical-entity schema (Q9) | §5 — eighteen typed entities (originally seventeen; Codex Correction #1 split `Publication` into `MarketplacePublicationAttempt` and `EditorialAsset`), cardinalities, stable IDs, lifecycle ownership, merge/split resolution |
 | No marketplace-neutral listing representation distinct from Shopify's own types (Q9) | §7 — `CommercePackage`, adapters as pure functions |
 | No unified `SourceConnector` interface (Q9) | §8 |
 | No catalog-scale non-functional requirement (Q9) | §19 |
@@ -569,7 +912,7 @@ All ten questions' full original answers still stand; none were substantively wr
 | 12 | Catalog-scale requirements | §19 | Explicit figures + async/queue/index requirements | Load-fixture test at a fraction of target scale (e.g. 1,000 SKUs) asserting p95 query latency budget | B (schema design gate) | Real load testing at the full stated scale (10k+ SKUs) can't happen until real catalog growth or synthetic data generation exists |
 | 13 | Phase B0 review shell | §19 | Shell UI spec: presentation, evidence panel, Approve/Reject/targeted-regenerate | A UI fixture asserting free-text editing is reachable only via an explicit "correction exception" action for new-model packages | B0 | Legacy-package migration-window UI needs its own explicit end-date policy, not yet set |
 | 14 | Operational instrumentation | §20 | Metric formulas, baseline policy, `correlationId` attribution, missing-data handling | A fixture period with zero events reports "insufficient data," asserted as a negative case (must not report 0% error rate) | B0 onward (capture starts immediately) | Baseline-period historical data may not exist for every metric; some will start from a forward-only baseline |
-| 15 | Public editorial safeguards | §17, §18 | `Publication` entity, claim-to-evidence validation, RBAC-tracked editorial approval | A fixture asserting a `Publication` cannot reach approved status with an unvalidated factual claim | Later phase (public editorial, after C/D/E prerequisites) | License/copyright rules per source type are named as a requirement but not yet enumerated per real source category |
+| 15 | Public editorial safeguards | §17, §18 | `EditorialAsset` entity (renamed from `Publication`, §22.2 item 1), claim-to-evidence validation, RBAC-tracked editorial approval | A fixture asserting an `EditorialAsset` cannot reach approved status with an unvalidated factual claim | Later phase (public editorial, after C/D/E prerequisites) | License/copyright rules per source type are named as a requirement but not yet enumerated per real source category |
 
 ### 22.1 Additional traceability — environment/test-data corrections (this revision)
 
@@ -583,13 +926,32 @@ Not part of Copilot's original fifteen; added directly by Phil after Revision 3'
 | Schema-drift detection | §1.1 | CI comparison of expected migration ledger vs. live database's applied-migration record | A deliberately introduced direct-SQL change to a test database is caught by the next CI run | A | Requires the live database to actually expose its applied-migration history queryably, which depends on adopting a real migration-ledger table first |
 | Existing `HY-LOB01-C04` test-data remediation | §1.2 | The 5-step quarantine process (identify → classify/quarantine → determine disposition → preserve audit record → no deletion without Phil's approval) | Manual verification, gated on Phil: confirm the `HY-LOB01-C04` records are quarantined from production queries before Phase B's claim-model backfill runs against them | Pre-Phase-A operational step, distinct from any architecture phase | Step 5 is a standing constraint, not a one-time check — every future session must re-confirm no unauthorized change happened before touching these records |
 
+### 22.2 Additional traceability — Codex's twelve corrections
+
+Codex's independent re-review of the corrected Revision 3 commit, returning `APPROVE AFTER DOCUMENTED CORRECTIONS`. Tracked separately from §22 (Copilot's original fifteen) and §22.1 (the same-day environment/test-data corrections), same discipline.
+
+| # | Correction | Revision 3 section(s) | Concrete artifact/interface | Acceptance test | Phase | Residual risk |
+|---|---|---|---|---|---|---|
+| 1 | Split marketplace publication from public editorial content | §5, §7, §13, §18 | `MarketplacePublicationAttempt` (immutable receipt record), `EditorialAsset` (renamed from `Publication`) | Fixture: creating a `MarketplacePublicationAttempt` never requires or accepts editorial-approval fields, and vice versa | B (entities) / F (real attempts) | No second real marketplace exists yet to prove the attempt record's shape holds under a genuinely different platform |
+| 2 | Variant-level `CommercePackage` offers | §7 | `VariantOffer` schema, `offers[]`, exact-item vs. representative-item mode | Fixture: a multi-variant product (Plant Pals-shaped) produces one `VariantOffer` per variant with no adapter-side reconstruction | B/F | Real multi-variant catalog data to validate the schema against doesn't exist yet in this pipeline |
+| 3 | Field-level lineage | §7 | `FieldLineage`, `fieldPath`-addressable | Fixture: every field path in a completed `CommercePackage` resolves to a `FieldLineage` entry with ≥1 claim or an owner-decision reference | B/F | Backfilling lineage for any legacy-migrated field (§6, §14.1) needs its own resolution rule, not yet specified per field type |
+| 4 | Repository contract completion | §9 | Evidence/claim/policy/recommendation/decision/lineage operations enumerated | Contract test: every method listed in §9 has a corresponding authorization check and audit event | B | Some operations (e.g. `evaluatePolicy`) depend on the policy engine's own design, not yet detailed beyond this interface |
+| 5 | `SourceConnector` completion | §8 | `health`, cursor pagination, versioning, `resolveIdentifier`, `WritebackReceipt` | Fixture connector test: a repeated `writeback` call with the same idempotency key returns `already_applied`, never double-writes | B | Real Skrybix/SKU Generator connectors migrating onto this interface is unstarted work, same residual risk as §22's item 3 |
+| 6 | `RecordContext` approval-state enum | §25 | `approvalState: not_required \| pending \| genuine \| test_exception` | Fixture: a freshly-generated, unreviewed record defaults to `pending`, never `test_exception` or `genuine` | B | Existing prose/examples elsewhere in this document referring to `ownerApproval.genuine` needed updating to the new enum — verified corrected in this pass, but a future edit could reintroduce the old shape without a schema-level lint |
+| 7 | Eligibility defaults closed | §25 | DB/API default `false` for all three eligibility flags; missing/null fails closed | Fixture: a record inserted with eligibility omitted is treated identically to one with all three flags explicitly `false` | B | Requires the actual database schema to enforce `NOT NULL DEFAULT false` rather than relying on application-layer discipline alone — a schema-level requirement to carry into Phase B's migration, not yet written |
+| 8 | Cross-environment access restricted | §9, §25 | `environmentFilter` removed from `queryApplicableClaims`; `requestCrossEnvironmentAccess` as the sole cross-environment path | Fixture: a production-scoped call to `queryApplicableClaims` never returns a test-context claim, with no parameter able to change that | B | The privileged authorization level required for `requestCrossEnvironmentAccess` is named but not yet mapped onto §15's specific role grants |
+| 9 | Verification and promotion thresholds | §10.1 | Corroboration/authority/freshness thresholds by claim class; automated/verifier/Phil-required tiers | Fixture: a single-source, non-authoritative commerce-consequential claim cannot reach `verified` without Phil, even with zero contradictions | B/C | Thresholds are specified per claim *class*; real production claims will need to be classified against this list, which hasn't been exercised against live data yet |
+| 10 | Phase B0 correction sequencing | §14.1, §19 | `LegacyCorrectionEvent`, migration into canonical `Correction` in Phase B | Fixture: a test-context `LegacyCorrectionEvent` is marked `ineligible`, never `migrated`, regardless of how cleanly it resolves | B0 (capture) / B (migration) | The resolution logic mapping a legacy field identifier to a canonical `(entityType, entityId, predicate)` isn't yet specified beyond "attempted" |
+| 11 | Research-ingestion isolation strengthened | §10 | Eight-step untrusted-content pipeline; adversarial fixture requirement | Adversarial fixture suite across web/PDF/OCR/supplier/OneDrive content, each asserting pipeline behavior is unaffected by embedded instructions | C/D | No adversarial fixture corpus exists yet; this is a real, non-trivial test-authoring effort, not just a policy statement |
+| 12 | Owner-effort instrumentation precision | §20 | Five decomposed time categories, start/stop event pairs, physical-vs-administrative split | Fixture: a start event with no matching stop event within timeout reports "unresolved," asserted as distinct from both a fast completion and a missing-data period | B0 onward (capture starts with B0's review shell) | Timeout thresholds per category aren't yet set; requires real usage data to calibrate rather than an arbitrary default |
+
 ## 23. Revised phase sequencing
 
-Replaces Revision 2's Phase A–K plan. Etsy publishing and production implementation remain paused throughout — nothing below is authorized to start until Phil approves following Copilot's re-review.
+Replaces Revision 2's Phase A–K plan. Etsy publishing and production implementation remain paused throughout — nothing below is authorized to start until Phil approves following Codex's targeted verification of the twelve corrections in this revision (Codex's independent re-review having already returned `APPROVE AFTER DOCUMENTED CORRECTIONS`).
 
-- **Phase A** — only isolated mechanical corrections that create **no** dependency on legacy provenance or the legacy review form. Concretely, per §1's disposition column: reconciling the undocumented live-database migration so the schema is reproducible from git, and standing up §1.1's migration-ledger/CI-drift-detection gate — nothing else from the current uncommitted work qualifies as "Phase A" under this stricter definition, since most of it either touches `content_provenance` directly or modifies the legacy review form. §1.2's `HY-LOB01-C04` quarantine is a prerequisite operational step, not itself a Phase A deliverable.
-- **Phase B0** — completed-package review shell (§19) and correction-event capture (§14), built before the claim model itself exists.
-- **Phase B** — canonical entities (§5), claim/evidence model (§6), Repository foundation and service contract (§9), legacy migration (§1, §6).
+- **Phase A** — only isolated mechanical corrections that create **no** dependency on legacy provenance or the legacy review form, narrowly scoped to schema reconciliation per this revision's correction. Concretely, per §1's disposition column: reconciling the undocumented live-database migration so the schema is reproducible from git as a baseline (not a re-execution, §1.1), standing up §1.1's migration-ledger/CI-drift-detection gate, and writing the incident record for the direct-SQL event — nothing else from the current uncommitted work qualifies as "Phase A" under this stricter definition, since most of it either touches `content_provenance` directly or modifies the legacy review form. §1.2's `HY-LOB01-C04` quarantine is a prerequisite operational step, not itself a Phase A deliverable.
+- **Phase B0** — completed-package review shell (§19) and correction-event capture via `LegacyCorrectionEvent` (§14.1), built before the claim model itself exists.
+- **Phase B** — canonical entities (§5, now eighteen types), claim/evidence model (§6), Repository foundation and service contract (§9, complete per Codex Correction #4), legacy migration (§1, §6), and migration of eligible `LegacyCorrectionEvent`s into canonical `Correction` records (§14.1).
 - **Phase C** — OneDrive evidence library and secure ingestion (§17, §10's security controls).
 - **Phase D** — image understanding (§11).
 - **Phase E** — independent validation and marketplace-compliance gates (§12, plus the deterministic/evidence-grounded validator split from Revision 2 §4/§6).
@@ -600,7 +962,7 @@ Replaces Revision 2's Phase A–K plan. Etsy publishing and production implement
 
 ## 24. Roadmap status
 
-`ROADMAP.md`'s milestones 2 and 3 remain built-but-not-yet-meeting-the-corrected-standard, as in Revision 2 — unchanged assessment. The stale item this revision removes: **§11 (response to Copilot's critique) is no longer an open step** — it's complete as of this revision, per §21 above. The open step is now Copilot's focused re-review of Revision 3 as a whole, returning `APPROVE FOR IMPLEMENTATION`, `APPROVE AFTER DOCUMENTED CORRECTIONS`, or `REQUIRES REVISION 4`. Phil authorizes the implementation sequence only after that.
+`ROADMAP.md`'s milestones 2 and 3 remain built-but-not-yet-meeting-the-corrected-standard, as in Revision 2 — unchanged assessment. Two stale items this revision removes: **§11 (response to Copilot's critique) is no longer an open step** — it's complete as of this revision, per §21 above; and **Copilot's focused re-review is no longer the open step** — it returned `REQUIRES REVISION 3 AND RE-REVIEW`, was addressed, and Codex's subsequent independent re-review returned `APPROVE AFTER DOCUMENTED CORRECTIONS` on the corrected commit. The open step now is Codex's own targeted verification of the twelve corrections this revision adds in response to that review (§22.2) — confirming they are present and internally consistent. Phil authorizes the implementation sequence only after that verification lands, and even then only for the narrowly-defined schema-reconciliation Phase A (§23), not the full sequence at once.
 
 ## 25. Environment and test-data isolation
 
@@ -608,7 +970,7 @@ Added directly by Phil after this document's first push, in direct response to �
 
 ### The `RecordContext` envelope
 
-Every entity defined in §5 (all seventeen types), plus `Recommendation`, `CommercePackage`, `Publication`, and `Correction` specifically, plus two record types implied but not previously named — `MetricEvent` (§20's instrumentation) and `KnowledgePromotionCandidate` (§18's lifecycle) — carries this envelope:
+Every entity defined in §5 (all eighteen types, including `MarketplacePublicationAttempt` and `EditorialAsset`), plus `Recommendation`, `CommercePackage`, and `Correction` specifically, plus three record types implied but not previously named — `MetricEvent` (§20's instrumentation), `KnowledgePromotionCandidate` (§18's lifecycle), and `LegacyCorrectionEvent` (§14.1) — carries this envelope:
 
 ```
 RecordContext {
@@ -618,9 +980,15 @@ RecordContext {
   sourceRun: RunId
   correlationId: CorrelationId          // §9, §13
   ownerApproval: {
-    genuine: boolean
-    testExceptionRef: OwnerDecisionId | null   // populated only when
-                                                 // genuine is false — the
+    // Codex Correction #6 — replaces the prior `genuine: boolean`, which
+    // collapsed "nobody has reviewed this yet" and "this is a documented
+    // test exception" into the same false value. A record generated by
+    // the pipeline and not yet looked at by anyone must default to
+    // `pending`, never be misclassified as `test_exception`.
+    approvalState: "not_required" | "pending" | "genuine" | "test_exception"
+    testExceptionRef: OwnerDecisionId | null   // required, populated, only
+                                                 // when approvalState is
+                                                 // test_exception — the
                                                  // documented, one-time
                                                  // test exception that
                                                  // authorized this record
@@ -628,11 +996,25 @@ RecordContext {
                                                  // GMCOM-012/015 pattern
                                                  // already used once this
                                                  // session, now formalized)
+    reviewerActor: ActorRef | null      // required, populated, only when
+                                                 // approvalState is genuine
+    decisionTimestamp: Timestamp | null // required, populated, only when
+                                                 // approvalState is genuine
+    ownerDecisionRef: OwnerDecisionId | null   // required, populated, only
+                                                 // when approvalState is
+                                                 // genuine
   }
   eligibility: {
-    knowledgePromotion: boolean
-    pricingAndPerformanceAnalysis: boolean
-    publication: boolean
+    // Codex Correction #7 — all three default to false at both the
+    // database and API layer. A missing or null value on any of the
+    // three is treated identically to false (fails closed); no code path
+    // may treat an absent eligibility flag as permissive. Eligibility
+    // becomes true only through an explicit, authorized transition that
+    // itself emits an audit event (§9) — never a bulk default, a
+    // migration side-effect, or an inferred value.
+    knowledgePromotion: boolean        // default: false
+    pricingAndPerformanceAnalysis: boolean   // default: false
+    publication: boolean               // default: false
   }
   retention: {
     status: "active" | "quarantined" | "scheduled_for_cleanup" |
@@ -649,15 +1031,15 @@ RecordContext {
 
 Each restated with the specific mechanism that enforces it, not left as a principle to remember:
 
-- **Test data cannot enter production knowledge, pricing, performance, policy, learning, or public editorial outputs.** Enforced at every query/promotion boundary: §9's `queryApplicableClaims` defaults `environmentFilter` to the caller's own environment; §18's promotion state machine checks `eligibility.knowledgePromotion`; §20's metrics only aggregate `eligibility.pricingAndPerformanceAnalysis: true` records; §17's `Publication` approval checks `eligibility.publication`.
+- **Test data cannot enter production knowledge, pricing, performance, policy, learning, or public editorial outputs.** Enforced at every query/promotion boundary: §9's `queryApplicableClaims` is scoped to the caller's own environment by construction, with no parameter able to widen it (Codex Correction #8); §18's promotion state machine checks `eligibility.knowledgePromotion`; §20's metrics only aggregate `eligibility.pricingAndPerformanceAnalysis: true` records; §18's `EditorialAsset` approval checks `eligibility.publication`.
 - **A real inventory item used in a test does not make the test's generated commerce facts real.** See above — independent context per record, not inherited.
-- **Test approval exceptions cannot become owner decisions or durable rules.** §14's rule-activation flow excludes any correction whose originating claim/recommendation has `ownerApproval.genuine: false` from ever being proposed as a durable rule; `testExceptionRef` makes the exception itself visible and auditable rather than indistinguishable from a real approval.
-- **Test publications and Shopify drafts must be visibly labeled and excluded from production metrics.** A `MarketplaceListing` or `Publication` with `context.environment: test` carries a mandatory visible label in its adapter payload (§7) — this is a publish-time requirement, not just a database flag — and is excluded from §20's metrics via `eligibility.pricingAndPerformanceAnalysis: false`.
-- **Cross-environment references are prohibited unless performed through an explicit, audited promotion process.** A production claim can never cite a test-context claim as its evidence; moving something from test to production requires a dedicated, audited Repository command (analogous to but distinct from §18's evidence-promotion state machine), never an implicit reference.
+- **Test approval exceptions cannot become owner decisions or durable rules.** §14's rule-activation flow excludes any correction whose originating claim/recommendation has `ownerApproval.approvalState` other than `genuine` from ever being proposed as a durable rule; `test_exception`/`pending` records are structurally ineligible, and `testExceptionRef` makes a documented exception itself visible and auditable rather than indistinguishable from a real approval. A record still `pending` review is never treated as either genuine or a test exception — it is simply not yet eligible for anything that requires `genuine`.
+- **Test publications and Shopify drafts must be visibly labeled and excluded from production metrics.** A `MarketplaceListing`, `MarketplacePublicationAttempt`, or `EditorialAsset` with `context.environment: test` carries a mandatory visible label in its adapter payload (§7) — this is a publish-time requirement, not just a database flag — and is excluded from §20's metrics via `eligibility.pricingAndPerformanceAnalysis: false`.
+- **Cross-environment references are prohibited unless performed through an explicit, audited promotion process.** *(Scope tightened by Codex Correction #8.)* A production claim can never cite a test-context claim as its evidence, and — per §9's `queryApplicableClaims` — a production caller structurally cannot receive test/staging/development claims through the ordinary query path at all; there is no parameter that widens it. The only sanctioned path is §9's `requestCrossEnvironmentAccess`, scoped to exactly three purposes (audited promotion, authorized diagnostics, fixture evaluation) and required to carry actor, reason, source environment, destination environment, correlation ID, and its own immutable audit event. **Diagnostic reads obtained this way can never feed a production recommendation run or a `knowledgePromotion` transition** — enforced at the command layer (§9), not left as a caller convention.
 - **Production data cannot be copied into lower environments without appropriate privacy and access controls.** Gated by §15's RBAC at the Repository command layer — a production-to-test copy is itself a privileged, logged action.
 - **AI evaluation fixtures must remain distinguishable from business records.** `recordPurpose: "fixture"` is its own value, distinct from `"test"` — a fixture used to evaluate the pipeline's own quality is not even a test of a real product, and must never be queryable alongside either test or production business records.
 - **Knowledge promotion must verify both evidence quality and production eligibility.** §18's `under_review → verified` transition now requires both no unresolved contradiction (unchanged) *and* `context.eligibility.knowledgePromotion === true` (new) — evidence can be perfectly verified and still correctly blocked from promotion if its context says it shouldn't be.
 
 ### Environment-aware queries, applied to every contract this document defines
 
-§8's `SourceConnector` and §9's `IntelligenceRepositoryV1` interfaces are edited directly (above) to carry environment scoping. The same requirement applies to every dedicated Recommendation, Policy, Learning, Metric, and Publication service surface a later phase defines: **no query interface in this architecture may return records without either an explicit environment scope or an explicit, logged decision to widen it.** Where those dedicated interfaces don't exist yet (Recommendation and Publication currently live as entity types plus operations on the shared Repository contract, not standalone services), this requirement is binding on whichever contract does serve those queries today — meaning `queryApplicableClaims` and any future recommendation-specific query built on top of it inherit this scoping by construction, not by separate opt-in.
+§8's `SourceConnector` and §9's `IntelligenceRepositoryV1` interfaces are edited directly (above) to carry environment scoping. The same requirement applies to every dedicated Recommendation, Policy, Learning, Metric, and Editorial service surface a later phase defines: **no query interface in this architecture may return records without either an explicit environment scope by construction or a use of §9's dedicated `requestCrossEnvironmentAccess` operation (Codex Correction #8) — never an ordinary optional parameter that widens an otherwise-scoped query.** Where dedicated interfaces don't exist yet (Recommendation, `MarketplacePublicationAttempt`, and `EditorialAsset` currently live as entity types plus operations on the shared Repository contract, not standalone services), this requirement is binding on whichever contract does serve those queries today — meaning `queryApplicableClaims` and any future recommendation-specific query built on top of it inherit this scoping by construction, not by separate opt-in.
