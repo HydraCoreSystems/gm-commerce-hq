@@ -260,9 +260,8 @@ that is fail-closed when unset. But `service_role` — the only role
 `gm-commerce` actually uses (`lib/supabase.ts` holds only the service-role
 key; there is no browser-side Supabase Auth user yet) — has Postgres
 `BYPASSRLS`, so RLS structurally cannot gate it. The actual environment-
-isolation enforcement for today's app is `lib/canonical/repository.ts`:
-every read method requires an explicit `callerEnvironment` parameter with
-no widening path, checked in TypeScript before any query is issued.
+isolation enforcement for today's app is `lib/canonical/repository.ts`'s
+`CanonicalEntityRepository`.
 
 **Reason:** Two options existed: (a) claim RLS enforces isolation and
 leave the service-role gap unstated, or (b) build the TypeScript-layer
@@ -274,6 +273,48 @@ reset traces back to) — a security claim that sounds stronger than what's
 actually enforced. (b) was chosen. If a browser-side Supabase Auth path is
 ever added for this app, the RLS policy is already live and correct and
 needs no rework — only then would it become load-bearing.
+
+**Update (2026-08-03, same day, correction pass after Codex's independent
+review of PR #5):** Codex found the original version of this entry
+correctly *named* the gap but didn't go far enough — the "load-bearing"
+application path itself wasn't yet bound or protected against accidental
+misuse. Three concrete fixes landed in response, and the trust boundary is
+now stated precisely rather than just directionally:
+
+1. **`CanonicalEntityRepository` is now the only door in, verified by
+   audit, not just by convention.** `grep`ing `app/`, `components/`, and
+   `lib/` for any reference to a `canonical_*` table name outside
+   `lib/canonical/` itself returns nothing — no other application code has
+   ever queried these tables directly. This was true before the
+   correction pass too, but wasn't previously stated as a checked fact.
+2. **Environment is now bound per repository instance at construction,
+   never accepted per call.** The original version of this class took
+   `callerEnvironment` as a parameter on every read — which is
+   caller-*selected* scope, not caller-*bound* authorization; any call
+   site could simply request `production`. Now, one `Environment` is
+   bound at construction via `createCanonicalEntityRepository()`, which
+   resolves it from trusted config (`GMCOM_ENVIRONMENT`, fail-closed on
+   missing/invalid — see `environment-config.ts`), never from a request
+   parameter. No method on a constructed instance accepts a different
+   environment as an override.
+3. **`createEntity` can no longer be used to overwrite its own protected
+   columns.** The original version built the stored row as `{ id,
+   ...recordContextColumns, ...fields }` — entity-specific `fields` spread
+   *last*, so a caller (or a bug) could silently overwrite `id`,
+   `environment`, approval/eligibility/retention, or timestamp columns.
+   Fixed with two independent layers: an explicit reject
+   (`rejectProtectedColumnOverrides`, checked first, adversarially tested
+   against each of the 18 protected columns individually) and a
+   corrected, protected-columns-spread-last row construction as a second,
+   structurally independent backstop.
+
+The trust boundary, stated precisely as of this correction: RLS is real,
+enabled, and correct defense-in-depth for a future non-service-role
+caller — but is not what protects today's data. What protects today's
+data is `CanonicalEntityRepository` being the sole code path with table
+access, each instance being bound to one environment at construction from
+trusted config, and `createEntity` being unable to have its protected
+columns overridden by caller-supplied `fields`.
 
 ## 2026-08-03 — ULID IDs are generated independently at both the Postgres and TypeScript layers, not shared via a library dependency
 
@@ -296,3 +337,34 @@ Postgres connection, which was not available in this session's environment
 (no Docker daemon, no local Postgres) — the Postgres-side implementation's
 own runtime behavior is instead verified live by CI's `schema-from-empty`
 job, which does have real Postgres.
+
+## 2026-08-03 — Canonical foreign keys are composite on (column, environment), not id alone
+
+**Decision:** Every parent/child relationship among the 18 canonical
+entity tables (`gm-commerce` PR #5) now uses a composite foreign key —
+`foreign key (col, environment) references parent (id, environment)` —
+instead of the original `references parent(id)`. Every canonical table
+also carries a `unique (id, environment)` constraint, which is what makes
+the composite FK possible (Postgres requires a unique constraint on
+exactly the column tuple a composite FK references).
+
+**Reason:** Codex's independent review of PR #5 found that the original,
+id-only foreign keys let a row in one environment reference a parent row
+in a different one — e.g. a `production` SKU could reference a `test`
+ProductConcept — which is exactly the cross-environment leak §25 exists to
+prevent, and it was enforced nowhere: not by the original id-only FK, and
+not by application code (which never validated a parent's environment
+before referencing it). A composite FK was chosen over a cross-table
+CHECK constraint (which Postgres doesn't support directly) or a trigger:
+it's declarative, enforced by Postgres's own constraint machinery rather
+than custom trigger logic repeated across 17 relationships, and it's
+NULL-safe by Postgres's default `MATCH SIMPLE` semantics — an optional,
+unset reference (e.g. `InventoryItem` with no `sku_id`) remains exempt,
+exactly like the plain FK it replaced. No new column was needed: every
+canonical table already carried its own `environment` column, which now
+doubles as the second half of every composite FK it participates in.
+Live-verified in CI (`.github/workflows/ci.yml`'s `schema-from-empty` job)
+against a real Postgres instance: a deliberately cross-environment insert
+on both a required relationship (SKU → ProductConcept) and a nullable one
+(InventoryItem → SKU) is confirmed to fail with `foreign_key_violation`,
+and a same-environment insert on both is confirmed to still succeed.
