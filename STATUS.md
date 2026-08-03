@@ -2,7 +2,28 @@
 
 _Last updated: 2026-08-03_
 
-## Phase A in progress — narrow schema-reconciliation scope only
+## Correction to this document's own prior state (2026-08-03, this update)
+
+**The "Phase A in progress... Phase B0 remains unauthorized and paused"
+framing directly below this notice is STALE and describes an earlier point
+in the same day, not the current state.** Re-verified directly against
+`gm-commerce` git log rather than trusted from memory: **Phase A is
+complete** (unchanged from below), and **Phase B0 is also complete and
+merged** — `gm-commerce` PR #3 (`55a89b2`, completed-package review shell +
+`LegacyCorrectionEvent`, PRODUCT_RESET_2026-08-03.md §19/§14.1) and PR #4
+(`46d364d`, function search-path hardening on Phase B0's two new
+functions) are both merged to `main`. `main` is currently at `46d364d`.
+Live Supabase Security Advisor: 0 errors, 7 pre-existing warnings, none
+introduced by Phase B0. **Phase B, slice 1 of 4 (canonical entity
+foundation — §5's 18 entity types, the RecordContext envelope per §25, and
+the minimal entity-level Repository slice per §9) has been built on branch
+`phase-b-slice-1-canonical-entities` and is open as `gm-commerce` PR #5,
+NOT merged** — see the Active Work entry below for exact commits, test
+counts, and the full slice 2-4 breakdown. Below this notice, leave the
+original Phase A narrative as written (it was accurate for its own point
+in time); this notice is the correction, not an edit to history.
+
+## Phase A — narrow schema-reconciliation scope (complete; historical framing below, see correction above)
 
 Codex issued final judgment on the reset: `APPROVED FOR NARROW PHASE A
 IMPLEMENTATION` (`PRODUCT_RESET_2026-08-03.md`, this repo) — strictly
@@ -235,7 +256,9 @@ Phil or Crystal's actual review.
 
 **Closeout (`gm-commerce` `4e40906`): Phil ran the bootstrap and it succeeded.** The live ledger returned exactly the six expected rows (`20260801000000` through `20260802040000`); `20260803000000` correctly absent. That migration is now **retired**, not merely left pending — per the reset document's reconciliation, `content_provenance` is superseded by the canonical claim/evidence model and field-level `FieldLineage`, and the price-ownership decision's approved home is `CommercePackage`/`VariantOffer`, not this column. Its file moved to `docs/incidents/2026-08-03-retired-migration-commerce_field_ownership.sql.txt` (non-executable extension) and its two columns were removed from `supabase/schema.sql`; `supabase/migrations/` now contains exactly the six active, applied, ledgered migrations. Live schema, migration ledger, and committed migration sequence all agree. Full suite (111 tests), typecheck, and build pass. **Phase A is complete.**
 
-**Next approved phase awaiting Phil's authorization: Phase B0** (completed-package review shell + `LegacyCorrectionEvent` correction capture, PRODUCT_RESET_2026-08-03.md §19/§14.1/§23) — not started.
+**Correction (2026-08-03, later the same day): Phase B0 is complete, not "not started."** The line that previously stood here — "Next approved phase awaiting Phil's authorization: Phase B0 ... not started" — was stale by the time this was re-verified. `gm-commerce` PR #3 (`55a89b2`, merged) built the completed-package review shell's data layer: `legacy_correction_events` (§14.1's `LegacyCorrectionEvent`, full `RecordContext` envelope, structural constraints preventing a test/demo/fixture-purpose event from ever being marked `migrated`, or a non-genuine approval state from carrying a true eligibility flag) and `owner_effort_events` (§20's instrumentation: review/approval_rejection/correction/escalation_resolution/navigation_data_entry/physical_labor categories, explicit start/stop pairs, an `owner_effort_unresolved` view for abandoned starts). PR #4 (`46d364d`, merged) pinned `search_path` on both new Postgres functions (`gmcom_record_instant_owner_effort`, `gmcom_apply_legacy_correction`) as a same-day hardening follow-up. Both are on `main`.
+
+**Phase B, slice 1 of 4, is built and open for review — not merged.** `gm-commerce` branch `phase-b-slice-1-canonical-entities`, PR **#5** (https://github.com/HydraCoreSystems/gm-commerce/pull/5), commits `aa09c2d` → `26f429a` → `2d44509` (latest). Delivers the canonical entity foundation (PRODUCT_RESET_2026-08-03.md §5/§9/§25): all 18 canonical entity tables with real relational structure (not a relabeling of `listing_packages`/`commerce_details`), a full `RecordContext` envelope on every one (fail-closed eligibility, `pending`-default owner approval), a Postgres-side `gmcom_ulid()` generator plus an independent TypeScript ULID implementation, and the minimal `createEntity`/`getEntity`/`listEntities` slice of `IntelligenceRepositoryV1` with structural (not just RLS) environment isolation. **Verification, exact:** `npm run typecheck` clean; `npm test` 191 passed / 0 failed (105 pre-existing + 86 new); `npm run build` succeeds; CI's `schema-from-empty` job (real Postgres 15 service container, extended by this PR with three new live-verification steps) passes on the current commit — all 18 tables confirmed to exist with RLS enabled and the expected grant shape, `gmcom_ulid()` confirmed to produce 1,000 well-formed/unique IDs, and the environment-scoped RLS policy confirmed live to return zero rows with no `app.gmcom_caller_environment` GUC set and exactly the correctly-scoped row once one is. Full slice 2-4 breakdown and the honest limitation of what RLS actually enforces today (vs. what the TypeScript repository layer enforces) are both in the PR description. **Not merged — awaiting review.**
 
 The broader uncommitted GMCOM-015/016 working tree on `gm-commerce` (Commerce Readiness Gate, the legacy `/commerce` UI, AI care-research changes, etc.) remains deliberately uncommitted — out of this narrow Phase A scope, per the reset document's disposition table and Codex's authorization.
 

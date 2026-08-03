@@ -249,3 +249,50 @@ granted scopes until the app is uninstalled and reinstalled (or otherwise
 re-authorized) on the store. Cost real troubleshooting time to discover
 during GMCOM-012; recording it here so it isn't rediscovered the hard way
 again.
+
+## 2026-08-03 — Phase B slice 1: RLS is real but not load-bearing for today's only caller; the TypeScript repository layer is
+
+**Decision:** The 18 canonical entity tables (`gm-commerce` PR #5,
+`supabase/migrations/20260803030000_phase_b_slice1_canonical_entities.sql`)
+have RLS enabled and a real, environment-scoped `SELECT` policy for the
+`authenticated` role, gated on a session GUC (`app.gmcom_caller_environment`)
+that is fail-closed when unset. But `service_role` — the only role
+`gm-commerce` actually uses (`lib/supabase.ts` holds only the service-role
+key; there is no browser-side Supabase Auth user yet) — has Postgres
+`BYPASSRLS`, so RLS structurally cannot gate it. The actual environment-
+isolation enforcement for today's app is `lib/canonical/repository.ts`:
+every read method requires an explicit `callerEnvironment` parameter with
+no widening path, checked in TypeScript before any query is issued.
+
+**Reason:** Two options existed: (a) claim RLS enforces isolation and
+leave the service-role gap unstated, or (b) build the TypeScript-layer
+enforcement as the real mechanism and state plainly that RLS is
+defense-in-depth for a future caller, not today's protection. (a) would
+have repeated exactly the kind of overstated-safety mistake §25 exists to
+prevent (the `HY-LOB01-C04` "real data" mischaracterization this whole
+reset traces back to) — a security claim that sounds stronger than what's
+actually enforced. (b) was chosen. If a browser-side Supabase Auth path is
+ever added for this app, the RLS policy is already live and correct and
+needs no rework — only then would it become load-bearing.
+
+## 2026-08-03 — ULID IDs are generated independently at both the Postgres and TypeScript layers, not shared via a library dependency
+
+**Decision:** `gmcom_ulid()` (Postgres, `plpgsql`) and `lib/canonical/ulid.ts`'s
+`generateUlid()` (TypeScript) are two separate implementations of the same
+26-character Crockford-base32 ULID shape (48-bit ms timestamp + 80-bit
+crypto-random entropy), rather than one being derived from or wrapping the
+other, and rather than pulling in a `ulid` npm package.
+
+**Reason:** The TypeScript repository layer (`lib/canonical/repository.ts`)
+is the primary, sole ID-issuing path in normal application use — it always
+supplies an explicit `id` on insert. `gmcom_ulid()` exists as a safety net
+so a direct-SQL insert (discouraged by §1.1's database-change-control
+policy, but not something the database itself can prevent) still gets a
+compliant ID rather than an arbitrary or absent one. Keeping the two
+implementations independent means a defect in one is not automatically a
+defect in the other, and the TypeScript one can be unit-tested directly
+(format, 10,000-call uniqueness, sortability) without needing a live
+Postgres connection, which was not available in this session's environment
+(no Docker daemon, no local Postgres) — the Postgres-side implementation's
+own runtime behavior is instead verified live by CI's `schema-from-empty`
+job, which does have real Postgres.
