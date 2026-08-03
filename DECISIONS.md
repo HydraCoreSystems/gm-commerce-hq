@@ -440,3 +440,74 @@ against a real Postgres instance: a deliberately cross-environment insert
 on both a required relationship (SKU → ProductConcept) and a nullable one
 (InventoryItem → SKU) is confirmed to fail with `foreign_key_violation`,
 and a same-environment insert on both is confirmed to still succeed.
+
+## 2026-08-03 — Repository construction is bound by a private constructor + module-private runtime token, not a naming convention
+
+**Decision:** `CanonicalEntityRepositoryImpl` (`gm-commerce`
+`lib/canonical/internal/repository-impl.ts`) now has a TypeScript
+`private` constructor that additionally checks a module-private runtime
+`symbol` token (`CONSTRUCTION_TOKEN`, declared `const`, never exported).
+The only way to obtain an instance, anywhere in the codebase, is the
+static `CanonicalEntityRepositoryImpl.create(supabase)` method, which
+resolves the bound environment internally from trusted configuration and
+takes no environment argument. `lib/canonical/testing.ts` (a prior
+round's environment-accepting test factory) is deleted; tests now go
+through the exact same `createCanonicalEntityRepository(supabase)` path
+as application code, temporarily controlling `process.env.GMCOM_ENVIRONMENT`
+for the duration of a construction call.
+
+**Reason:** Two prior rounds of this fix were each found insufficient by
+Codex's review, in a useful, illustrative progression:
+
+- **Round 1** bound environment per repository *instance* rather than
+  accepting it per method call — real progress, but the class itself was
+  still a plain public class, constructible anywhere with any environment.
+- **Round 2** re-exported the class as a TYPE ONLY from
+  `lib/canonical/repository.ts` (erased at compile time) and moved the
+  real class to an `internal/` directory, auditing that `app/` and
+  `components/` never imported it directly. This stopped *application
+  code* from constructing an arbitrary-environment instance through the
+  public module — but it was still a naming/import-location convention:
+  the class itself remained a real, exported, constructible runtime value
+  in `internal/repository-impl.ts`, and nothing stopped a future helper
+  anywhere else in the tree (a different `lib/` subdirectory, a script, a
+  job — none of which round 2's audit even scanned) from importing that
+  exact file and calling `new` on it directly.
+- **Round 3 (this entry)** replaces the naming convention with an actual
+  construction boundary that holds regardless of which file attempts a
+  bypass. The private constructor blocks the common case at compile time.
+  The runtime symbol-token check is what makes it real against a
+  *determined* bypass: TypeScript's `private` is erased at runtime, so a
+  caller casting past it with `as any` could otherwise still call the
+  compiled constructor — but they cannot supply the token, because a
+  `symbol` is unique by identity, never by its description string. Even
+  creating a second `Symbol("CanonicalEntityRepositoryImpl construction
+  token")` with the exact same text does not produce a value equal to the
+  real one; JavaScript's `Symbol()` guarantees this. The real token is
+  never exported, attached to any object, or returned by any function —
+  no code outside `internal/repository-impl.ts`'s own module scope has
+  ever held a reference to it, so none can reproduce it.
+
+Adversarially tested in `lib/canonical/internal/repository-impl.test.ts`,
+which imports the real class directly (deliberately bypassing the
+"don't import internal/" convention, to prove the boundary doesn't
+depend on that convention being followed) and confirms: a guessed
+2-argument constructor call throws; a forged token with a matching
+description string throws; other guessed token values (`"production"`,
+`{}`, `undefined`, `null`, `Symbol.for("production")`) all throw; and the
+one real construction path, `CanonicalEntityRepositoryImpl.create(supabase)`,
+succeeds and binds exactly the environment `resolveTrustedEnvironment()`
+resolves, with no argument for any caller to have influenced.
+`lib/canonical/trust-boundary.test.ts`'s import-location audit is kept
+and broadened beyond `app/`+`components/` to `lib/` (excluding
+`lib/canonical`'s own legitimate wiring), `test/`, `types/`, `supabase/`
+— now explicitly documented as defense-in-depth on top of the real
+mechanism, not the primary guarantee, since the guarantee no longer
+depends on file location at all.
+
+The trust boundary, restated precisely as of this third correction: RLS
+remains defense-in-depth only. What protects today's data:
+`CanonicalEntityRepositoryImpl` cannot be constructed by any code,
+anywhere, with a caller-chosen environment, full stop — not because of
+where a file lives, but because its own constructor refuses every caller
+who cannot produce a value that exists only in its own module's closure.
