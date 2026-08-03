@@ -2,7 +2,7 @@
 
 _Last updated: 2026-08-03_
 
-## PAUSED — awaiting Codex's targeted verification of Revision 3's twelve corrections
+## PAUSED — awaiting Codex's confirmation of two targeted corrections
 
 Implementation and Etsy work remain paused pending sign-off on
 `PRODUCT_RESET_2026-08-03.md` (this repo). Inspecting HY-LOB01-C04's real
@@ -29,14 +29,30 @@ model (§25) and database-change-control policy (§1.1) so this class of
 mistake is structurally prevented going forward. **Codex then performed
 the independent re-review of that corrected commit and returned `APPROVE
 AFTER DOCUMENTED CORRECTIONS`** — twelve finite corrections, no broad
-Revision 4 redesign required. All twelve are now incorporated into
-`PRODUCT_RESET_2026-08-03.md` (§§5, 7–10, 14.1, 20, 22.2, 25). **Copilot is
-near a usage limit and did not perform this review; Codex performed it
-instead, per Phil's relay.** The open step now is Codex's own targeted
-verification that the twelve corrections are present and internally
-consistent. Only after that may implementation begin, and even then only
-for the narrowly-scoped schema-reconciliation Phase A (§23) — not the full
-sequence at once.
+Revision 4 redesign required. All twelve were incorporated (`4cead48`,
+§§5, 7–10, 14.1, 20, 22.2, 25). **Copilot is near a usage limit and did not
+perform this or the following review; Codex performed both, per Phil's
+relay.**
+
+**Codex then performed the targeted verification of that commit and
+returned `APPROVE AFTER TWO TARGETED CORRECTIONS`:** all twelve
+corrections are present and substantially satisfy the review; two
+internal inconsistencies needed fixing — §13 artifact 7 still pointed to
+the retired package-wide `evidenceRefs` instead of §7's `fieldLineage[]`,
+and §10.1's verification-threshold rule required Phil's confirmation for
+*every* price/weight/shipping/compliance/safety/marketplace-policy claim
+regardless of evidence, which would have recreated the exact bottleneck
+this reset's own governing completion test exists to eliminate. Both are
+now corrected: §13 references `fieldLineage[]` directly, and §10.1
+distinguishes authoritative-system-of-record facts and existing-policy
+applications (auto-verifiable) from AI-generated recommendations
+(evidence-backed, validated, approved once at completed-package review —
+never as a separate per-field fact-check). The open step now is Codex's
+confirmation of these two specific fixes. **Once confirmed, the judgment
+becomes `APPROVED FOR NARROW PHASE A IMPLEMENTATION`** — strictly §1.1's
+schema reconciliation, migration ledger, schema-from-empty CI, drift
+detection, and the direct-SQL incident record. No broader implementation
+sequence is authorized yet, and Etsy remains paused throughout.
 
 ## Current Milestone (pre-pause)
 
@@ -200,7 +216,7 @@ Phil or Crystal's actual review.
 
 ## Active Work
 
-- **Product Reset Revision 3, twice-corrected, awaiting Codex's targeted verification:** responds to all 15 finite corrections and 7 canonical decisions from the Revision 2 review (`docs/autonomous-commerce-intelligence-audit.md`) — canonical entity hierarchy (18 types), marketplace-neutral `CommercePackage`, `SourceConnector` contract, Intelligence Repository service contract, catalog-scale requirements, correction-scope inference, and Phase B0 review-shell sequencing are each a concrete specification (interfaces/schemas/state machines) in `PRODUCT_RESET_2026-08-03.md`, not a restated intention. Also resolves a real documentation-state discrepancy Copilot found: Revision 2's claimed "Phase A" work (Commerce Readiness Gate, `commerce_details`, `content_provenance`) exists only in a local, uncommitted `gm-commerce` working tree — including a live-database schema change with no corresponding git migration — documented component-by-component with an honest retain/migrate/discard disposition per component, not committed as part of this update. **Same-day correction (`6455fc8`):** the first push (`b2feb517`) itself mischaracterized `HY-LOB01-C04`'s test-session `commerce_details` as real production data; Phil caught this directly and it's corrected in place, plus a new enforced `RecordContext`/environment-isolation model (§25) and a database-change-control policy (§1.1) prevent this class of mistake structurally going forward. **Codex's independent re-review of that corrected commit returned `APPROVE AFTER DOCUMENTED CORRECTIONS`** — twelve finite corrections (entity split for marketplace-publication vs. editorial content, variant-level `CommercePackage` offers, field-level lineage, completed Repository and `SourceConnector` contracts, an explicit `RecordContext` approval-state enum, closed-by-default eligibility, restricted cross-environment access, verification/promotion thresholds, `LegacyCorrectionEvent` for Phase B0 sequencing, strengthened research-ingestion isolation, and precise owner-effort instrumentation) — all now incorporated (§§5, 7–10, 14.1, 20, 22.2, 25). `HY-LOB01-C04`'s test records remain untouched pending Phil's explicit direction on quarantine/disposition. Awaiting Codex's targeted verification that these twelve corrections are present and internally consistent — Copilot is near a usage limit and did not perform this review. Etsy and production implementation remain paused; even after verification, only the narrowly-scoped schema-reconciliation Phase A may begin, not the full sequence.
+- **Product Reset Revision 3, three-times corrected, awaiting Codex's confirmation of two targeted fixes:** responds to all 15 finite corrections and 7 canonical decisions from the Revision 2 review (`docs/autonomous-commerce-intelligence-audit.md`) — canonical entity hierarchy (18 types), marketplace-neutral `CommercePackage`, `SourceConnector` contract, Intelligence Repository service contract, catalog-scale requirements, correction-scope inference, and Phase B0 review-shell sequencing are each a concrete specification (interfaces/schemas/state machines) in `PRODUCT_RESET_2026-08-03.md`, not a restated intention. Also resolves a real documentation-state discrepancy Copilot found: Revision 2's claimed "Phase A" work (Commerce Readiness Gate, `commerce_details`, `content_provenance`) exists only in a local, uncommitted `gm-commerce` working tree — including a live-database schema change with no corresponding git migration — documented component-by-component with an honest retain/migrate/discard disposition per component, not committed as part of this update. **Same-day correction (`6455fc8`):** the first push (`b2feb517`) itself mischaracterized `HY-LOB01-C04`'s test-session `commerce_details` as real production data; Phil caught this directly and it's corrected in place, plus a new enforced `RecordContext`/environment-isolation model (§25) and a database-change-control policy (§1.1) prevent this class of mistake structurally going forward. **Codex's independent re-review of that corrected commit returned `APPROVE AFTER DOCUMENTED CORRECTIONS`** (`4cead48`) — twelve finite corrections (entity split for marketplace-publication vs. editorial content, variant-level `CommercePackage` offers, field-level lineage, completed Repository and `SourceConnector` contracts, an explicit `RecordContext` approval-state enum, closed-by-default eligibility, restricted cross-environment access, verification/promotion thresholds, `LegacyCorrectionEvent` for Phase B0 sequencing, strengthened research-ingestion isolation, and precise owner-effort instrumentation) — all incorporated (§§5, 7–10, 14.1, 20, 22.2, 25). **Codex's subsequent targeted verification of that commit returned `APPROVE AFTER TWO TARGETED CORRECTIONS`:** §13 artifact 7's stale `evidenceRefs` reference (now `fieldLineage[]`), and §10.1's Phil-required rule, which over-escalated by requiring Phil's confirmation on every commerce-consequential claim regardless of evidence — now corrected to auto-verify authoritative-source facts and existing-policy applications, while AI-generated recommendations (price, above all) reach Phil once, at completed-package approval, never per-field. Both fixes are now in this document. `HY-LOB01-C04`'s test records remain untouched pending Phil's explicit direction on quarantine/disposition. Awaiting Codex's confirmation of these two specific fixes — Copilot is near a usage limit and has not performed either of the last two reviews. Once confirmed, the judgment becomes `APPROVED FOR NARROW PHASE A IMPLEMENTATION` (§1.1's schema reconciliation, migration ledger, schema-from-empty CI, drift detection, and the direct-SQL incident record only). Etsy and the full implementation sequence remain paused.
 
 - **GMCOM-014 real-export smoke check passed (2026-08-02) using `products_export_1_revised_plant_tags.csv`:** the production parser normalized 255 Shopify product rows into 42 unique handles with no parsing error; repeated image/variant rows grouped correctly (including `fidget-animals` with 64 unique images). Status filters match the export: 37 active, 2 draft, 1 archived, 2 with no status. Category filters expose Accessories (12), Plant Accessories (2), Plant Additive (1), Planter (5), Plants (14), and Uncategorized (8). All 42 listings are in the 50-79 Commerce Score filter; the 0-49 and 80-100 filters correctly return none. `plant-tags-set-of-25` is active, Uncategorized, rank 41/42 (77/100): actual title `3D Printed Plant Tags – Set of 25 Reusable Garden & Houseplant Labels`; its raw exported description, SEO title/description, and nine tags are retained in the detail view. Its findings are one-image count, missing Product Type, and no internal link. Commerce Audit loaded the real report with no parsing/rendering error. Input remains browser-local: `File.text()` into in-memory React state only, with no upload, browser storage, Supabase, AI, Shopify, rewrite, or persistence path.
 
