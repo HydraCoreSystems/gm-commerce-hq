@@ -2,11 +2,15 @@
 
 _Last updated: 2026-08-03_
 
-## PAUSED — awaiting Codex's confirmation of two targeted corrections
+## Phase A in progress — narrow schema-reconciliation scope only
 
-Implementation and Etsy work remain paused pending sign-off on
-`PRODUCT_RESET_2026-08-03.md` (this repo). Inspecting HY-LOB01-C04's real
-Shopify draft surfaced real content defects; the in-flight fix
+Codex issued final judgment on the reset: `APPROVED FOR NARROW PHASE A
+IMPLEMENTATION` (`PRODUCT_RESET_2026-08-03.md`, this repo) — strictly
+schema reconciliation, the migration ledger, schema-from-empty CI, drift
+detection, and the direct-SQL incident record. **Phase B0, Phase B, Etsy,
+new AI features, and any implementation beyond this narrow scope remain
+unauthorized and paused.** Inspecting HY-LOB01-C04's Shopify draft surfaced
+real content defects; the in-flight fix
 (GMCOM-015's Commerce Readiness Gate + a same-day follow-up moving price/
 weight/collections/care-instructions ownership off Phil and Crystal) was
 correct in direction but was being built piecemeal. Phil's instruction:
@@ -34,25 +38,32 @@ Revision 4 redesign required. All twelve were incorporated (`4cead48`,
 perform this or the following review; Codex performed both, per Phil's
 relay.**
 
-**Codex then performed the targeted verification of that commit and
-returned `APPROVE AFTER TWO TARGETED CORRECTIONS`:** all twelve
-corrections are present and substantially satisfy the review; two
+**Codex then performed the targeted verification of that commit (`8ecf2e4`)
+and returned `APPROVE AFTER TWO TARGETED CORRECTIONS`:** all twelve
+corrections were present and substantially satisfied the review; two
 internal inconsistencies needed fixing — §13 artifact 7 still pointed to
 the retired package-wide `evidenceRefs` instead of §7's `fieldLineage[]`,
 and §10.1's verification-threshold rule required Phil's confirmation for
 *every* price/weight/shipping/compliance/safety/marketplace-policy claim
 regardless of evidence, which would have recreated the exact bottleneck
-this reset's own governing completion test exists to eliminate. Both are
-now corrected: §13 references `fieldLineage[]` directly, and §10.1
+this reset's own governing completion test exists to eliminate. Both were
+corrected: §13 now references `fieldLineage[]` directly, and §10.1
 distinguishes authoritative-system-of-record facts and existing-policy
 applications (auto-verifiable) from AI-generated recommendations
 (evidence-backed, validated, approved once at completed-package review —
-never as a separate per-field fact-check). The open step now is Codex's
-confirmation of these two specific fixes. **Once confirmed, the judgment
-becomes `APPROVED FOR NARROW PHASE A IMPLEMENTATION`** — strictly §1.1's
-schema reconciliation, migration ledger, schema-from-empty CI, drift
-detection, and the direct-SQL incident record. No broader implementation
-sequence is authorized yet, and Etsy remains paused throughout.
+never as a separate per-field fact-check). **Codex then confirmed both
+fixes and issued final judgment: `APPROVED FOR NARROW PHASE A
+IMPLEMENTATION`** — strictly schema reconciliation, migration ledger,
+schema-from-empty CI, drift detection, and the direct-SQL incident record.
+No broader implementation sequence is authorized, and Etsy remains paused.
+
+**Separately, Phil corrected a standing factual error**: `HY-LOB01-C04`
+was never a real plant cutting or Gathering Moss inventory item —
+synthetic test data only, created and used by Claude for pipeline testing
+— and explicitly authorized deleting everything specifically tied to it.
+That deletion is complete (database rows, the live Shopify draft, local
+photo files); see the Active Work entry below and `PRODUCT_RESET_2026-08-03.md`
+§1.2/§22.1 for the full disposition.
 
 ## Current Milestone (pre-pause)
 
@@ -216,20 +227,10 @@ Phil or Crystal's actual review.
 
 ## Active Work
 
-- **Product Reset Revision 3, three-times corrected, awaiting Codex's confirmation of two targeted fixes:** responds to all 15 finite corrections and 7 canonical decisions from the Revision 2 review (`docs/autonomous-commerce-intelligence-audit.md`) — canonical entity hierarchy (18 types), marketplace-neutral `CommercePackage`, `SourceConnector` contract, Intelligence Repository service contract, catalog-scale requirements, correction-scope inference, and Phase B0 review-shell sequencing are each a concrete specification (interfaces/schemas/state machines) in `PRODUCT_RESET_2026-08-03.md`, not a restated intention. Also resolves a real documentation-state discrepancy Copilot found: Revision 2's claimed "Phase A" work (Commerce Readiness Gate, `commerce_details`, `content_provenance`) exists only in a local, uncommitted `gm-commerce` working tree — including a live-database schema change with no corresponding git migration — documented component-by-component with an honest retain/migrate/discard disposition per component, not committed as part of this update. **Same-day correction (`6455fc8`):** the first push (`b2feb517`) itself mischaracterized `HY-LOB01-C04`'s test-session `commerce_details` as real production data; Phil caught this directly and it's corrected in place, plus a new enforced `RecordContext`/environment-isolation model (§25) and a database-change-control policy (§1.1) prevent this class of mistake structurally going forward. **Codex's independent re-review of that corrected commit returned `APPROVE AFTER DOCUMENTED CORRECTIONS`** (`4cead48`) — twelve finite corrections (entity split for marketplace-publication vs. editorial content, variant-level `CommercePackage` offers, field-level lineage, completed Repository and `SourceConnector` contracts, an explicit `RecordContext` approval-state enum, closed-by-default eligibility, restricted cross-environment access, verification/promotion thresholds, `LegacyCorrectionEvent` for Phase B0 sequencing, strengthened research-ingestion isolation, and precise owner-effort instrumentation) — all incorporated (§§5, 7–10, 14.1, 20, 22.2, 25). **Codex's subsequent targeted verification of that commit returned `APPROVE AFTER TWO TARGETED CORRECTIONS`:** §13 artifact 7's stale `evidenceRefs` reference (now `fieldLineage[]`), and §10.1's Phil-required rule, which over-escalated by requiring Phil's confirmation on every commerce-consequential claim regardless of evidence — now corrected to auto-verify authoritative-source facts and existing-policy applications, while AI-generated recommendations (price, above all) reach Phil once, at completed-package approval, never per-field. Both fixes are now in this document. `HY-LOB01-C04`'s test records remain untouched pending Phil's explicit direction on quarantine/disposition. Awaiting Codex's confirmation of these two specific fixes — Copilot is near a usage limit and has not performed either of the last two reviews. Once confirmed, the judgment becomes `APPROVED FOR NARROW PHASE A IMPLEMENTATION` (§1.1's schema reconciliation, migration ledger, schema-from-empty CI, drift detection, and the direct-SQL incident record only). Etsy and the full implementation sequence remain paused.
+- **Product Reset Revision 3 — `APPROVED FOR NARROW PHASE A IMPLEMENTATION`.** Responds to all 15 finite corrections and 7 canonical decisions from the Revision 2 review (`docs/autonomous-commerce-intelligence-audit.md`), then to Codex's twelve corrections (`4cead48`) and two targeted fixes (`8ecf2e4`). Codex's final judgment, after confirming both fixes: narrow Phase A only — schema reconciliation, migration ledger, schema-from-empty CI, drift detection, the direct-SQL incident record (§1.1, §23 of the reset document). Phase B0, Phase B, Etsy, and any broader implementation remain unauthorized. **Separately, Phil corrected a standing factual error:** `HY-LOB01-C04` was never a real plant cutting or Gathering Moss inventory item — synthetic test data only — and explicitly authorized deleting everything tied to it. That deletion is complete: the `gm-commerce` database row (cascading to every child table), the live Shopify draft (`gid://shopify/Product/10220386648384`, via `productDelete`, no errors), and the local photo folders are all confirmed gone. **Every prior entry below this point that describes `HY-LOB01-C04` as a real cutting, real plant, or real photos reflects what was believed true at the time it was written, not the corrected, current understanding — treat this note as the standing correction rather than editing dozens of historical entries.** See `PRODUCT_RESET_2026-08-03.md` §1.2 and §22.1 for the full disposition, including the one item out of this project's control (a possible corresponding Skrybix-side record, not touched). **Phase A schema-reconciliation work is committed and pushed to `gm-commerce` (`77c8593`):** the two previously-uncommitted migration files, an updated `supabase/schema.sql`, a `schema-from-empty` CI job, a `schema-drift` CI job (needs a `SUPABASE_DB_URL` repository secret Phil has to add — not yet configured), and a direct-SQL incident record (`docs/incidents/2026-08-03-direct-sql-commerce-details.md`). Typecheck, the full 105-test suite, and the production build all pass locally. **One item remains open and could not be completed from this environment:** backfilling the Supabase CLI's own internal migration ledger requires a direct Postgres connection string or Management API token, neither available here (only the REST service-role key was present in `.env.local`) — flagged in the incident record as the one remaining Phase A blocker. The broader uncommitted GMCOM-015/016 working tree on `gm-commerce` (Commerce Readiness Gate, the legacy `/commerce` UI, AI care-research changes, etc.) was deliberately left uncommitted — out of this narrow Phase A scope, per the reset document's disposition table and Codex's authorization.
 
 - **GMCOM-014 real-export smoke check passed (2026-08-02) using `products_export_1_revised_plant_tags.csv`:** the production parser normalized 255 Shopify product rows into 42 unique handles with no parsing error; repeated image/variant rows grouped correctly (including `fidget-animals` with 64 unique images). Status filters match the export: 37 active, 2 draft, 1 archived, 2 with no status. Category filters expose Accessories (12), Plant Accessories (2), Plant Additive (1), Planter (5), Plants (14), and Uncategorized (8). All 42 listings are in the 50-79 Commerce Score filter; the 0-49 and 80-100 filters correctly return none. `plant-tags-set-of-25` is active, Uncategorized, rank 41/42 (77/100): actual title `3D Printed Plant Tags – Set of 25 Reusable Garden & Houseplant Labels`; its raw exported description, SEO title/description, and nine tags are retained in the detail view. Its findings are one-image count, missing Product Type, and no internal link. Commerce Audit loaded the real report with no parsing/rendering error. Input remains browser-local: `File.text()` into in-memory React state only, with no upload, browser storage, Supabase, AI, Shopify, rewrite, or persistence path.
 
-- **`HY-LOB01-C04` now has a real Shopify draft product**
-  (`gid://shopify/Product/10220386648384`) created under GMCOM-012's
-  one-time verification exception — Phil or Crystal should look at it in
-  Shopify admin and decide what to do with it (further edits, publish it
-  live themselves when genuinely ready, or discard). GM Commerce itself
-  has no path to make a product live; that isn't a gap, it's by design.
-- Phil or Crystal to actually review `HY-LOB01-C04`'s real Listing
-  Package in `/review` going forward under the normal (non-exception)
-  process — it's currently reviewed under GMCOM-012's one-time exception,
-  not by an owner's own judgment.
 - Update GitHub Issues for GMCOM-007/008/009/010/011/012 — no GitHub API
   access available to Claude in this environment. GMCOM-012 has no Issue
   at all yet (assigned directly in chat) — recommend creating one
