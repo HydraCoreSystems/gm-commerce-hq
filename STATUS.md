@@ -1,8 +1,25 @@
 # Current Project Status
 
-_Last updated: 2026-08-02_
+_Last updated: 2026-08-03_
 
-## Current Milestone
+## PAUSED — awaiting Phil's review of the product/architecture reset
+
+Implementation is paused pending Phil's sign-off on
+`PRODUCT_RESET_2026-08-03.md` (this repo). Inspecting HY-LOB01-C04's real
+Shopify draft surfaced real content defects; the in-flight fix
+(GMCOM-015's Commerce Readiness Gate + a same-day follow-up moving price/
+weight/collections/care-instructions ownership off Phil and Crystal) was
+correct in direction but was being built piecemeal. Phil's instruction:
+stop, produce the full reset package (vision, gap analysis, manual-handoff
+inventory, autonomous intelligence architecture, persistent knowledge
+design, provenance/confidence model, owner-authority model, Skrybix gap
+analysis, completed-package review design, migration plan, test strategy,
+revised roadmap), and do not resume implementation or begin Etsy work
+until he's reviewed it. See that document for the full detail — nothing
+below this notice should be read as current direction until the reset is
+reconciled with it.
+
+## Current Milestone (pre-pause)
 
 **GMCOM-012 — the Shopify Draft Publisher — is complete and verified
 against a real Shopify store.** The first complete production workflow
