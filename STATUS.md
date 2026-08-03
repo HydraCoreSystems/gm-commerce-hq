@@ -95,6 +95,8 @@ Phil or Crystal's actual review.
 
 ## Completed
 
+- **GMCOM-016 — Autonomous Commerce Intelligence Audit completed on `hydracoresystems-listing-audit-engine` (documentation only):** independent review finds that current GM Commerce is a safe draft-publishing pipeline, not yet an autonomous commerce operating system. The audit inventories manual work, maps data ownership, defines measurable autonomy evaluations, identifies missing research/vision/policy/pricing/learning capabilities, and documents audit-score compression from the real Shopify export (42 listings scored only 51-77). No production behavior changed. Claude's reset proposal was not yet published at review time; its required independent review gate is documented in `docs/autonomous-commerce-intelligence-audit.md`.
+
 - **GMCOM-012 — Shopify Draft Publisher, built and verified against a
   real store.** Commits `572a858`/`f2a073d` on `main`, pushed. 19 new
   tests (79 total). Real Shopify draft created and field-verified for
@@ -161,6 +163,8 @@ Phil or Crystal's actual review.
   stash-pop; merged cleanly.
 
 ## Active Work
+
+- **GMCOM-016 reset-proposal review pending:** apply the independent critique gate in `docs/autonomous-commerce-intelligence-audit.md` once Claude publishes the reset proposal; do not begin implementation before that review.
 
 - **GMCOM-014 real-export smoke check passed (2026-08-02) using `products_export_1_revised_plant_tags.csv`:** the production parser normalized 255 Shopify product rows into 42 unique handles with no parsing error; repeated image/variant rows grouped correctly (including `fidget-animals` with 64 unique images). Status filters match the export: 37 active, 2 draft, 1 archived, 2 with no status. Category filters expose Accessories (12), Plant Accessories (2), Plant Additive (1), Planter (5), Plants (14), and Uncategorized (8). All 42 listings are in the 50-79 Commerce Score filter; the 0-49 and 80-100 filters correctly return none. `plant-tags-set-of-25` is active, Uncategorized, rank 41/42 (77/100): actual title `3D Printed Plant Tags – Set of 25 Reusable Garden & Houseplant Labels`; its raw exported description, SEO title/description, and nine tags are retained in the detail view. Its findings are one-image count, missing Product Type, and no internal link. Commerce Audit loaded the real report with no parsing/rendering error. Input remains browser-local: `File.text()` into in-memory React state only, with no upload, browser storage, Supabase, AI, Shopify, rewrite, or persistence path.
 
