@@ -1,13 +1,15 @@
 # GM Commerce — Product & Architecture Reset
 
-**Status: Revision 3 — finite architectural specification, awaiting Copilot's focused re-review (`APPROVE FOR IMPLEMENTATION` / `APPROVE AFTER DOCUMENTED CORRECTIONS` / `REQUIRES REVISION 4`) before Phil authorizes any implementation sequence.**
+**Status: Revision 3 (corrected) — finite architectural specification, awaiting Copilot's focused re-review of this corrected commit (`APPROVE FOR IMPLEMENTATION` / `APPROVE AFTER DOCUMENTED CORRECTIONS` / `REQUIRES REVISION 4`) before Phil authorizes any implementation sequence.**
 
 ## Revision 3 changelog (2026-08-03)
 
 Copilot's independent review of Revision 2 (source: `gm-commerce` audit commit `bd6503841add2b00c7bb48c4a94e4076abd373d9`, `docs/autonomous-commerce-intelligence-audit.md`; headquarters decision commit `da44c96`) returned **REQUIRES REVISION 3 AND RE-REVIEW**. Two categories of correction, both addressed below:
 
 1. **A documentation-state discrepancy** — Revision 2 referred to `listing_packages.content_provenance`, `commerce_details`, and a Commerce Readiness Gate as "substantially coded" Phase A work. Copilot could not locate these on `gm-commerce`'s reviewed `origin/main` because they aren't there — they exist only in this session's local, uncommitted working tree. §1 below resolves this precisely, component by component, with no rounding in the system's favor.
-2. **Fifteen finite architectural corrections** and **seven canonical architecture decisions**, each incorporated as an actual specification (interfaces, schemas, state machines) in its own section below, not a restated intention. A traceability table (§20) maps every correction to where it's addressed, what the concrete artifact is, how it's tested, which phase builds it, and what risk remains open.
+2. **Fifteen finite architectural corrections** and **seven canonical architecture decisions**, each incorporated as an actual specification (interfaces, schemas, state machines) in its own section below, not a restated intention. A traceability table (§22) maps every correction to where it's addressed, what the concrete artifact is, how it's tested, which phase builds it, and what risk remains open.
+
+**Post-push correction (same day, before Copilot's re-review began):** the first push of this revision (`b2feb517`) itself mischaracterized `HY-LOB01-C04`'s test-session `commerce_details` values as "real data ... entered from facts Phil gave directly in chat." Phil caught and corrected this directly: the plant, its Skrybix record, and its photographs are real; the generated listing, price, commerce details, review approval, and Shopify draft were test artifacts, not a genuine owner-approved offering. §1's second paragraph is corrected in place, §1.1 adds database-change-control policy, §1.2 adds a general test-data quarantine/remediation process (applied first to `HY-LOB01-C04`, with no deletion or alteration of its records without Phil's explicit approval), and §25 adds an enforced `RecordContext` model (environment, record purpose, owner-approval genuineness, and eligibility for promotion/pricing/publication) so this class of mistake — a real inventory item's test data being treated as production truth — is structurally prevented going forward, not just corrected once in prose. §22.1 tracks these additions in the traceability table separately from Copilot's original fifteen.
 
 This revision does not soften Revision 2's substance — the vision, the completion test, the six-source and eight-evidence-type taxonomies, the manual-handoff inventory, and the Skrybix gap analysis all carry forward. What changes is that everything downstream of "Product Truth" is now specified as an actual system: canonical entities, a marketplace-neutral Commerce Package, a formal source-connector and Repository service contract, a compliance gate distinct from recommendations, catalog-scale non-functional requirements, and a corrected phase sequence that puts the completed-package review shell and correction-capture in Phase B0 — before the claim model itself — instead of leaving the legacy edit form as the default experience for months while the backend gets smarter underneath it.
 
@@ -25,7 +27,16 @@ Inspecting HY-LOB01-C04's real Shopify draft (GMCOM-012) surfaced defects — pl
 
 Copilot is correct: `origin/main` on `gm-commerce` is at `f2a073d` ("Verify GMCOM-012 against a real Shopify store"), the same commit Revision 1 described as the last real milestone. Every "Phase A" component Revision 2 described as built or substantially coded exists **only** in this session's local, uncommitted working tree on the `main` branch checkout at `C:\Users\pwach\OneDrive\Documents\GitHub\gm-commerce`. There is no commit SHA to give for any of it, because none of it has been committed.
 
-One further discrepancy, more consequential than the code: the **live Supabase database** (`wcrcllhvgbhykbonopzx`) already has the `commerce_details` table and the `listing_packages.content_provenance` column applied — created by running the migration SQL directly against the live database earlier in this session — and it holds real data (`commerce_details` for `HY-LOB01-C04`, entered from facts Phil gave directly in chat). **The migration file that created these does not exist in git at all.** The live schema is currently unreproducible from version control. This is exactly the "architecture cannot depend on an unaddressable worktree" risk Copilot named, now confirmed to extend past the worktree into the live database itself.
+One further discrepancy, more consequential than the code: the **live Supabase database** (`wcrcllhvgbhykbonopzx`) already has the `commerce_details` table and the `listing_packages.content_provenance` column applied — created by running the migration SQL directly against the live database earlier in this session. **The migration file that created these does not exist in git at all.** The live schema is currently unreproducible from version control. This is exactly the "architecture cannot depend on an unaddressable worktree" risk Copilot named, now confirmed to extend past the worktree into the live database itself. §1.1 below adds the database-change-control policy this requires.
+
+**Correction to this document's own prior wording, per Phil's explicit instruction:** an earlier draft of this section described the row that table holds for `HY-LOB01-C04` as "real data ... entered from facts Phil gave directly in chat." That characterization is wrong in a way that matters and is corrected here, not just noted. `HY-LOB01-C04` is a real Skrybix cutting — the plant, the Skrybix record, and its photographs are genuine. But the listing generated from it, its `commerce_details` row (price, weight, shipping/condition/exact-item text, collection assignment), the review approval that unlocked it, and the resulting Shopify draft were **artifacts of this session's end-to-end pipeline test**, not a genuine owner-approved commerce offering. A real inventory item having been used in a test does not make the test's generated commerce facts real — that distinction is now a first-class, enforced part of the architecture (§1.2, §25), not just a caveat in this paragraph. Specifically, and until §1.2's remediation process runs:
+
+- `HY-LOB01-C04`'s `commerce_details` values are **not** genuine production commerce data.
+- Its **$24.95 price must not be used as pricing history or a comparable sale** anywhere in this document, in any future price recommendation, or in any pricing-history record §7/§14 describe.
+- Its generated listing copy and care guidance are **not** approved Gathering Moss knowledge and must not be promoted into the knowledge domains §17/§18 describe.
+- Its collection, shipping, weight, inventory-policy, and condition values are **not** durable owner decisions.
+- It must **not** be included in any commerce-performance metric (§20).
+- It must **not** seed correction learning (§14), marketplace strategy, public plant knowledge (§17), or future recommendations (§7).
 
 | Component | Repository | Branch | Commit | State | Tests currently covering it | Revision 3 disposition |
 |---|---|---|---|---|---|---|
@@ -41,6 +52,29 @@ One further discrepancy, more consequential than the code: the **live Supabase d
 **Current full local test-suite state, run just now, not carried forward from an earlier claim:** 101 passing, 4 failing, 105 total, all four failures isolated to `app/review/shopify-publish.test.ts` from the incomplete fixture update noted above. None of this has ever run in CI, because none of it is committed.
 
 **What Revision 3 does about this:** nothing in this document authorizes committing or pushing any of the above gm-commerce code or the undocumented database migration — Phil's instruction remains that only the reset and status documents move this turn. The disposition column above is Revision 3's *design* answer (retain/migrate/discard), not an action taken. Before Phase A of the revised sequence (§19) resumes, the live-database migration-file gap specifically should be resolved on its own, independent of whether Revision 3 is approved, since an unreproducible production schema is a risk regardless of which architecture eventually builds on top of it.
+
+### 1.1 Database change control
+
+Direct-to-production SQL (exactly what created the undocumented `commerce_details`/`content_provenance` state above) is the specific failure this policy closes, stated as a standing rule rather than a one-time cleanup:
+
+- Every schema change requires a committed migration. No exceptions for "it's just a quick column add."
+- Migrations are ordered, immutable once applied, and tracked in a migration ledger (a table in the database itself recording which migrations have run, in what order, when — the standard pattern `supabase/migrations/` already implies but has never been enforced against direct SQL execution).
+- **Direct production SQL, when it genuinely must happen (an emergency fix), requires a matching version-controlled migration written and committed immediately after** — not "eventually," not "next session" — plus an incident record stating what was run directly, why the normal path wasn't used, and confirmation the follow-up migration reproduces it exactly.
+- CI must be able to build the complete schema from an empty database using only committed migrations — this is the actual test that would have caught today's gap immediately, and its absence is why it wasn't caught until Copilot's review.
+- CI must compare the expected migration set against the live database's migration ledger and fail on drift — so "the live database has something git doesn't know about" becomes a blocked deploy, not a discovery six phases later.
+- No phase in §23's sequence may depend on an uncommitted or unreproducible schema. Concretely: Phase A cannot be considered started until the current live-database gap is closed under this policy.
+
+### 1.2 `HY-LOB01-C04` test-data correction and remediation
+
+The general process, stated once and applicable to any future test-derived data found in production, not only this instance:
+
+1. **Identify** existing test-derived records in the live database.
+2. **Classify and quarantine** them from production retrieval — marked so no query path (§9, §25) treats them as eligible production knowledge, pricing history, or performance data while classification is pending.
+3. **Determine disposition** for each: retained as a labeled evaluation fixture (§25's `recordPurpose: fixture`), moved to a non-production environment, or removed.
+4. **Preserve an audit record** of the test itself — what was tested, when, by whom/what process, and why the data exists — regardless of what happens to the data.
+5. **Do not delete or alter the existing records without Phil's explicit approval.**
+
+Applied to `HY-LOB01-C04` specifically: this document makes no change to the live database. The `commerce_details` row and the associated `listing_packages`/Shopify draft state described in §1 remain exactly as they are. This section records the *classification* (test artifact, per the correction above) and the *process* that will run against it — actually executing steps 2–3 (quarantine, disposition) is implementation work, out of scope for a documentation correction, and is added to §22's traceability table as its own tracked item so it isn't lost. Step 5 is binding starting now: nothing in this session or any future one touches those records without Phil saying so explicitly.
 
 ## 2. Product vision
 
@@ -62,7 +96,7 @@ Unchanged classification from Revision 2: (A) genuinely owner-only — final app
 
 *Correction #1, Decision #1.* This is the foundational gap Revision 2's own §11 self-critique identified and Copilot's review confirmed as the largest concrete hole: a claim model that's generic in the abstract still needs a real entity hierarchy underneath it, or "subject" stays an informally-typed string forever.
 
-**Seventeen canonical entity types**, each with a stable, opaque ID (ULID-shaped, independent of any source system's natural key) issued once and never reused:
+**Seventeen canonical entity types**, each with a stable, opaque ID (ULID-shaped, independent of any source system's natural key) issued once and never reused, and each carrying a `RecordContext` (§25) that determines whether it's real production data, a test artifact, or a fixture — an entity being real never automatically makes the claims about it real, which matters immediately: §1's `HY-LOB01-C04` correction is the concrete case this distinction exists for.
 
 ```
 ProductConcept   — an abstract thing Gathering Moss sells (e.g. "Hoya lobbii
@@ -172,7 +206,7 @@ Claim {
 
 - **Source branch/commit:** none exists. Per §1, `content_provenance` (a `listing_packages` jsonb column mapping field name → source-tag string) was written this session, applied directly to the live database, and never committed. There is no commit to migrate *from* in the git-history sense — the migration is from **live, uncommitted schema state** to the new model, which is a materially different (and higher-risk) migration than a normal versioned-schema upgrade.
 - **Dual-write period:** while `commerce_details`/`listing_packages` remain the system of record for any in-flight product during Phase B, every write to those tables also writes the equivalent `Claim` record(s), so no product mid-pipeline loses data during cutover.
-- **Backfill validation:** for every existing row in `commerce_details`/`content_provenance` (currently: one real row, `HY-LOB01-C04`), a backfill job creates the equivalent `Claim` records and a validation pass confirms the reconstructed value matches the legacy column value exactly before the legacy column is considered migrated.
+- **Backfill validation:** for every existing row in `commerce_details`/`content_provenance` (currently: one row, `HY-LOB01-C04` — a test artifact per §1.2, not genuine production data), a backfill job creates the equivalent `Claim` records, each carrying `context.recordPurpose: "test"` (§25) so the backfill itself doesn't launder test data into production-eligible claims, and a validation pass confirms the reconstructed value matches the legacy column value exactly before the legacy column is considered migrated.
 - **Rollback:** the legacy columns are not dropped until Phase B's claim-store has run in production (however "production" is defined at that point — even a single-owner real-use period) for a defined burn-in window with zero reconstruction mismatches; until then, the legacy columns remain the fallback read path.
 - **Cutover:** reads switch to the claim store first (writes still dual-written), then writes switch, then legacy columns are marked deprecated, then — only after the burn-in window — dropped in a dedicated migration.
 - **Retirement criteria:** legacy columns may be dropped only when (a) the burn-in window has passed with zero mismatches, (b) no code path reads them directly, and (c) a schema diff confirms no other consumer (an ad hoc script, a future integration) depends on them.
@@ -230,6 +264,13 @@ interface SourceConnector {
     changeFeed: boolean
   }
 
+  // Every call is environment-scoped (§25) — a connector configured for
+  // the "test" environment must never be able to fetch into or write back
+  // against a production source record, and vice versa. This is enforced
+  // by the connector's own configuration, not left to the caller to
+  // remember.
+  readonly environment: Environment
+
   getRecord(sourceRecordId: string): Promise<SourceRecordSnapshot>
   listChangesSince(cursor: string): Promise<SourceRecordSnapshot[]>
   enumerateEvidence(sourceRecordId: string): Promise<EvidenceSourceRef[]>
@@ -258,21 +299,33 @@ Identity resolution: a connector's `(sourceSystem, sourceRecordId)` pair maps to
 ```
 interface IntelligenceRepositoryV1 {
   // Commands — all idempotent on (contentHash, correlationId); all emit an
-  // audit event: {actor, role, command, correlationId, timestamp, result}
-  proposeClaim(claim: ClaimDraft, correlationId: CorrelationId):
-    Promise<ClaimId>
-  recordCorrection(correction: CorrectionDraft):
+  // audit event: {actor, role, command, correlationId, timestamp, result}.
+  // Every write requires a RecordContext (§25) — there is no command that
+  // creates a claim, correction, or decision without declaring its
+  // environment, purpose, and eligibility up front.
+  proposeClaim(claim: ClaimDraft, context: RecordContext,
+               correlationId: CorrelationId): Promise<ClaimId>
+  recordCorrection(correction: CorrectionDraft, context: RecordContext):
     Promise<CorrectionId>
   promoteEvidence(evidenceRevisionId: EvidenceRevisionId):
-    Promise<PromotionResult>
-  recordOwnerDecision(decision: OwnerDecisionDraft):
+    Promise<PromotionResult>      // gated on context.eligibility
+                                   // .knowledgePromotion, §25
+  recordOwnerDecision(decision: OwnerDecisionDraft, context: RecordContext):
     Promise<OwnerDecisionId>
 
   // Queries — always return contradictions explicitly; never resolve them
-  // server-side before returning
-  queryApplicableClaims(subject: EntityRef, scope: Scope):
+  // server-side before returning. `environmentFilter` defaults to the
+  // caller's own environment and must be explicitly widened to cross
+  // environments — see §25's "cross-environment references are
+  // prohibited unless performed through an explicit, audited promotion
+  // process."
+  queryApplicableClaims(subject: EntityRef, scope: Scope,
+                         environmentFilter?: Environment[]):
     Promise<{ claims: Claim[], contradictions: Contradiction[] }>
-  queryActiveRules(scope: Scope): Promise<Rule[]>
+  queryActiveRules(scope: Scope): Promise<Rule[]>   // production-only by
+                                                     // construction — a
+                                                     // test-context rule
+                                                     // can never be active
   getPolicyVersion(policyId: PolicyId, asOf: Timestamp): Promise<Policy>
   getSelectionTrace(recommendationId: RecommendationId):
     Promise<SelectionTrace>       // §18
@@ -518,11 +571,23 @@ All ten questions' full original answers still stand; none were substantively wr
 | 14 | Operational instrumentation | §20 | Metric formulas, baseline policy, `correlationId` attribution, missing-data handling | A fixture period with zero events reports "insufficient data," asserted as a negative case (must not report 0% error rate) | B0 onward (capture starts immediately) | Baseline-period historical data may not exist for every metric; some will start from a forward-only baseline |
 | 15 | Public editorial safeguards | §17, §18 | `Publication` entity, claim-to-evidence validation, RBAC-tracked editorial approval | A fixture asserting a `Publication` cannot reach approved status with an unvalidated factual claim | Later phase (public editorial, after C/D/E prerequisites) | License/copyright rules per source type are named as a requirement but not yet enumerated per real source category |
 
+### 22.1 Additional traceability — environment/test-data corrections (this revision)
+
+Not part of Copilot's original fifteen; added directly by Phil after Revision 3's first push, in response to this document's own mischaracterization of `HY-LOB01-C04`'s test data. Tracked separately so the two sources of correction stay distinguishable.
+
+| Item | Revision 3 section(s) | Concrete artifact/interface | Acceptance test | Phase | Residual risk |
+|---|---|---|---|---|---|
+| Test-data/environment isolation | §25 | `RecordContext` envelope on every entity/claim/recommendation/decision/package/publication/correction/metric event/promotion candidate | Fixture: a claim created with `context.environment = "test"` is absent from a production-scoped `queryApplicableClaims` call by default | B (defined alongside the claim model) | Retrofitting `RecordContext` onto every entity type is real schema surface area, not a one-line addition |
+| Knowledge-promotion eligibility | §25, §18 | `context.eligibility.knowledgePromotion` gate added to the `verified → promoted` transition | Fixture: a high-confidence, fully-cited test-context claim still fails promotion on eligibility alone | B/C | Eligibility defaults (what a newly-created record's flags default to) need to be specified precisely enough that "forgot to set it" fails closed, not open |
+| Database migration reproducibility | §1.1 | CI job building the full schema from an empty database using only committed migrations | CI fails if any table/column exists in a target environment without a corresponding migration | A (blocking — nothing else in Phase A starts until this passes) | This is the one item in this table that isn't just design — it's a real, currently-failing check against the live database today |
+| Schema-drift detection | §1.1 | CI comparison of expected migration ledger vs. live database's applied-migration record | A deliberately introduced direct-SQL change to a test database is caught by the next CI run | A | Requires the live database to actually expose its applied-migration history queryably, which depends on adopting a real migration-ledger table first |
+| Existing `HY-LOB01-C04` test-data remediation | §1.2 | The 5-step quarantine process (identify → classify/quarantine → determine disposition → preserve audit record → no deletion without Phil's approval) | Manual verification, gated on Phil: confirm the `HY-LOB01-C04` records are quarantined from production queries before Phase B's claim-model backfill runs against them | Pre-Phase-A operational step, distinct from any architecture phase | Step 5 is a standing constraint, not a one-time check — every future session must re-confirm no unauthorized change happened before touching these records |
+
 ## 23. Revised phase sequencing
 
 Replaces Revision 2's Phase A–K plan. Etsy publishing and production implementation remain paused throughout — nothing below is authorized to start until Phil approves following Copilot's re-review.
 
-- **Phase A** — only isolated mechanical corrections that create **no** dependency on legacy provenance or the legacy review form. Concretely, per §1's disposition column: reconciling the undocumented live-database migration so the schema is reproducible from git; nothing else from the current uncommitted work qualifies as "Phase A" under this stricter definition, since most of it either touches `content_provenance` directly or modifies the legacy review form.
+- **Phase A** — only isolated mechanical corrections that create **no** dependency on legacy provenance or the legacy review form. Concretely, per §1's disposition column: reconciling the undocumented live-database migration so the schema is reproducible from git, and standing up §1.1's migration-ledger/CI-drift-detection gate — nothing else from the current uncommitted work qualifies as "Phase A" under this stricter definition, since most of it either touches `content_provenance` directly or modifies the legacy review form. §1.2's `HY-LOB01-C04` quarantine is a prerequisite operational step, not itself a Phase A deliverable.
 - **Phase B0** — completed-package review shell (§19) and correction-event capture (§14), built before the claim model itself exists.
 - **Phase B** — canonical entities (§5), claim/evidence model (§6), Repository foundation and service contract (§9), legacy migration (§1, §6).
 - **Phase C** — OneDrive evidence library and secure ingestion (§17, §10's security controls).
@@ -536,3 +601,63 @@ Replaces Revision 2's Phase A–K plan. Etsy publishing and production implement
 ## 24. Roadmap status
 
 `ROADMAP.md`'s milestones 2 and 3 remain built-but-not-yet-meeting-the-corrected-standard, as in Revision 2 — unchanged assessment. The stale item this revision removes: **§11 (response to Copilot's critique) is no longer an open step** — it's complete as of this revision, per §21 above. The open step is now Copilot's focused re-review of Revision 3 as a whole, returning `APPROVE FOR IMPLEMENTATION`, `APPROVE AFTER DOCUMENTED CORRECTIONS`, or `REQUIRES REVISION 4`. Phil authorizes the implementation sequence only after that.
+
+## 25. Environment and test-data isolation
+
+Added directly by Phil after this document's first push, in direct response to §1's own initial mischaracterization of `HY-LOB01-C04`'s test data as genuine — the clearest possible demonstration, inside this document's own history, of why this section has to be an enforced architectural layer and not a convention people are trusted to remember.
+
+### The `RecordContext` envelope
+
+Every entity defined in §5 (all seventeen types), plus `Recommendation`, `CommercePackage`, `Publication`, and `Correction` specifically, plus two record types implied but not previously named — `MetricEvent` (§20's instrumentation) and `KnowledgePromotionCandidate` (§18's lifecycle) — carries this envelope:
+
+```
+RecordContext {
+  environment: "development" | "test" | "staging" | "production"
+  recordPurpose: "operational" | "test" | "demonstration" | "migration" |
+                 "fixture"
+  sourceRun: RunId
+  correlationId: CorrelationId          // §9, §13
+  ownerApproval: {
+    genuine: boolean
+    testExceptionRef: OwnerDecisionId | null   // populated only when
+                                                 // genuine is false — the
+                                                 // documented, one-time
+                                                 // test exception that
+                                                 // authorized this record
+                                                 // to exist at all (the
+                                                 // GMCOM-012/015 pattern
+                                                 // already used once this
+                                                 // session, now formalized)
+  }
+  eligibility: {
+    knowledgePromotion: boolean
+    pricingAndPerformanceAnalysis: boolean
+    publication: boolean
+  }
+  retention: {
+    status: "active" | "quarantined" | "scheduled_for_cleanup" |
+            "retained_as_fixture"
+    reviewedAt: Timestamp | null
+    reviewedBy: ActorRef | null
+  }
+}
+```
+
+**Entity-level and claim-level context are independent, not inherited automatically** — this is the precise mechanism behind "a real inventory item used in a test does not make the test's generated commerce facts real." `HY-LOB01-C04` the `InventoryItem`/`SKU` is itself real (`context.environment: production` — it's a genuine Skrybix cutting Phil owns) while the `Claim`s, `Recommendation`s, and `CommercePackage` generated *about* it during this session's pipeline test each carry `context.environment: test`. The entity being real never upgrades the claims about it to real; each record's context is set explicitly when it's created, never derived by walking up to a parent entity.
+
+### Hard invariants
+
+Each restated with the specific mechanism that enforces it, not left as a principle to remember:
+
+- **Test data cannot enter production knowledge, pricing, performance, policy, learning, or public editorial outputs.** Enforced at every query/promotion boundary: §9's `queryApplicableClaims` defaults `environmentFilter` to the caller's own environment; §18's promotion state machine checks `eligibility.knowledgePromotion`; §20's metrics only aggregate `eligibility.pricingAndPerformanceAnalysis: true` records; §17's `Publication` approval checks `eligibility.publication`.
+- **A real inventory item used in a test does not make the test's generated commerce facts real.** See above — independent context per record, not inherited.
+- **Test approval exceptions cannot become owner decisions or durable rules.** §14's rule-activation flow excludes any correction whose originating claim/recommendation has `ownerApproval.genuine: false` from ever being proposed as a durable rule; `testExceptionRef` makes the exception itself visible and auditable rather than indistinguishable from a real approval.
+- **Test publications and Shopify drafts must be visibly labeled and excluded from production metrics.** A `MarketplaceListing` or `Publication` with `context.environment: test` carries a mandatory visible label in its adapter payload (§7) — this is a publish-time requirement, not just a database flag — and is excluded from §20's metrics via `eligibility.pricingAndPerformanceAnalysis: false`.
+- **Cross-environment references are prohibited unless performed through an explicit, audited promotion process.** A production claim can never cite a test-context claim as its evidence; moving something from test to production requires a dedicated, audited Repository command (analogous to but distinct from §18's evidence-promotion state machine), never an implicit reference.
+- **Production data cannot be copied into lower environments without appropriate privacy and access controls.** Gated by §15's RBAC at the Repository command layer — a production-to-test copy is itself a privileged, logged action.
+- **AI evaluation fixtures must remain distinguishable from business records.** `recordPurpose: "fixture"` is its own value, distinct from `"test"` — a fixture used to evaluate the pipeline's own quality is not even a test of a real product, and must never be queryable alongside either test or production business records.
+- **Knowledge promotion must verify both evidence quality and production eligibility.** §18's `under_review → verified` transition now requires both no unresolved contradiction (unchanged) *and* `context.eligibility.knowledgePromotion === true` (new) — evidence can be perfectly verified and still correctly blocked from promotion if its context says it shouldn't be.
+
+### Environment-aware queries, applied to every contract this document defines
+
+§8's `SourceConnector` and §9's `IntelligenceRepositoryV1` interfaces are edited directly (above) to carry environment scoping. The same requirement applies to every dedicated Recommendation, Policy, Learning, Metric, and Publication service surface a later phase defines: **no query interface in this architecture may return records without either an explicit environment scope or an explicit, logged decision to widen it.** Where those dedicated interfaces don't exist yet (Recommendation and Publication currently live as entity types plus operations on the shared Repository contract, not standalone services), this requirement is binding on whichever contract does serve those queries today — meaning `queryApplicableClaims` and any future recommendation-specific query built on top of it inherit this scoping by construction, not by separate opt-in.
