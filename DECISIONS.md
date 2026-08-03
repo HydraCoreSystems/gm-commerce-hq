@@ -316,6 +316,78 @@ access, each instance being bound to one environment at construction from
 trusted config, and `createEntity` being unable to have its protected
 columns overridden by caller-supplied `fields`.
 
+**Second update (2026-08-03, same day, Codex's targeted re-review found
+three further gaps in the above):**
+
+1. **Point 2 above ("environment is bound per instance") was real, but the
+   class's constructor was still public and unrestricted — any runtime
+   code could bypass `createCanonicalEntityRepository()` and call `new
+   CanonicalEntityRepository(supabase, "production")` directly, choosing
+   its own environment. "Prefer the factory" was a comment, not an
+   enforced boundary.** Fixed by actually separating the modules, not just
+   documenting an intent: the real class moved to
+   `lib/canonical/internal/repository-impl.ts`
+   (`CanonicalEntityRepositoryImpl`), and `lib/canonical/repository.ts` —
+   the module application code actually imports — re-exports it as a
+   **type only** (`export type { CanonicalEntityRepositoryImpl as
+   CanonicalEntityRepository }`). TypeScript erases type-only exports at
+   compile time, so there is no runtime value of that name reachable
+   through `repository.ts` at all; `new CanonicalEntityRepository(...)`
+   does not compile for code that only imports the public module, and a
+   runtime check (`lib/canonical/trust-boundary.test.ts`) confirms the
+   compiled module's namespace has no such property. The one value export
+   that produces an instance, `createCanonicalEntityRepository(supabase)`,
+   takes no environment argument — there's nothing for a caller to
+   override even if they wanted to. Tests get their own construction path,
+   `lib/canonical/testing.ts`'s `__createRepositoryForTesting`, itself
+   audited (grep, same mechanism as point 1's original audit) as never
+   imported by `app/` or `components/`. This is now **structurally** the
+   only path, not conventionally the recommended one.
+2. **`createEntity` could fabricate genuine owner approval and true
+   eligibility flags with no real `OwnerDecision` behind them.** The
+   original fail-closed defaulting (this document's earlier ULID/RLS
+   entries) only guaranteed *omitted* fields defaulted safely — it never
+   stopped a caller from *explicitly* supplying `ownerApproval.approvalState:
+   "genuine"` plus a fabricated reviewer/timestamp/decision-ref, or flipping
+   an eligibility flag `true`, through ordinary entity creation. Fixed on
+   two levels: `CreateEntityParams.context` is now typed as
+   `CreatableRecordContextInput`, which removes `"genuine"` from the
+   `approvalState` union entirely and narrows every eligibility flag's
+   type to the literal `false` — a caller cannot even write the
+   privileged values and have the code type-check. `rejectPrivilegedCreationContext()`
+   is the runtime backstop for an `as any` bypass, adversarially tested
+   against genuine approval and each of the three eligibility flags
+   individually. A future migration/backfill needing to preserve
+   pre-existing genuine approval is explicitly out of scope for slice 1
+   and will need its own separate, privileged, audited operation — not a
+   relaxation of this check.
+3. **`environment` defaulted to `'production'` on all 18 tables** — an
+   insert (direct SQL, a future bug, anything that reached the database
+   without going through the bound-environment repository) that omitted
+   `environment` silently became production data, the exact opposite of
+   fail-closed and a direct contradiction of "environment is set
+   explicitly at creation, never inferred." Fixed: the default is removed
+   entirely; the column remains `NOT NULL` with no fallback, so an
+   omitted `environment` now fails the insert outright. Live-verified in
+   CI against real Postgres: an insert omitting `environment` fails with
+   `not_null_violation`; the same insert with `environment` supplied still
+   succeeds.
+
+The trust boundary, restated precisely as of this second correction: RLS
+remains defense-in-depth only. What protects today's data: (a)
+`CanonicalEntityRepository` is the sole code path with table access,
+structurally unreachable as a constructible value outside
+`lib/canonical/internal/` and `lib/canonical/testing.ts`, both audited as
+never imported by application code; (b) each instance is bound to one
+environment at construction from trusted config, with no override
+surface anywhere in its public methods; (c) `createEntity` cannot have
+its protected columns overridden by `fields`, and cannot establish
+genuine approval or true eligibility through `context` — both rejected,
+not silently downgraded, and both unreachable at the type level for a
+caller who doesn't bypass TypeScript; (d) `environment` itself is a
+required column with no default, so even a write that bypasses the
+repository entirely still cannot silently default into production.
+
 ## 2026-08-03 — ULID IDs are generated independently at both the Postgres and TypeScript layers, not shared via a library dependency
 
 **Decision:** `gmcom_ulid()` (Postgres, `plpgsql`) and `lib/canonical/ulid.ts`'s
