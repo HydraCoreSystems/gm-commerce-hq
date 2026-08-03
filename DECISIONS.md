@@ -511,3 +511,57 @@ remains defense-in-depth only. What protects today's data:
 anywhere, with a caller-chosen environment, full stop — not because of
 where a file lives, but because its own constructor refuses every caller
 who cannot produce a value that exists only in its own module's closure.
+
+## 2026-08-03 — Phase B slice 2's evidence/claim repository is a sibling class, not an extension of slice 1's hardened repository
+
+**Decision:** `gm-commerce` PR #6 (Phase B slice 2, Evidence & Claim
+intelligence) needed row UPDATEs (`verifyClaim`, `supersedeClaim`,
+`resolveContradiction`) and cross-table joins (contradiction ↔ claim) that
+slice 1's `CanonicalEntityRepositoryImpl` deliberately does not provide
+(create/get/list only, per its own scope statement). Rather than adding
+UPDATE to that already-three-times-Codex-reviewed class, a new sibling
+class, `ClaimEvidenceRepositoryImpl` (`lib/canonical/claims/repository.ts`),
+independently re-implements the identical construction discipline — a
+private constructor guarded by its own module-private `symbol` token, one
+`Environment` resolved from trusted config and bound for the instance's
+entire lifetime, no method anywhere accepting a different environment. Zero
+lines of `lib/canonical/internal/repository-impl.ts` were touched.
+
+**Reason:** Growing the surface area of an already-hardened, heavily-scrutinized
+security boundary for a later slice's convenience is exactly the kind of
+scope creep this project's phase discipline exists to prevent. A sibling
+class with its own independently-verified construction boundary carries the
+same guarantee without risking a regression in code three separate Codex
+review rounds already certified. The cost is duplicated (not shared)
+construction-boundary logic between the two classes — accepted deliberately,
+recorded here so a future session doesn't "simplify" by merging them without
+re-deriving why they were kept apart.
+
+## 2026-08-03 — Claim precedence is always recomputed, never persisted; two array-shaped claim columns carry no database foreign key
+
+**Decision:** Phase B slice 2's `canonical_claims.sources`/`.evidence_anchor_ids`
+are jsonb/text[] columns with **no** database foreign key into the rows
+they reference (`canonical_evidence_sources`/`canonical_evidence_anchors`).
+`lib/canonical/claims/precedence.ts`'s `computePrecedenceRank` is also never
+persisted — there is no `precedence_rank` column anywhere in the schema; it
+is recomputed fresh from a claim's current `sources`/`status`/`ownerOverrideId`
+on every call.
+
+**Reason:** `PRODUCT_RESET_2026-08-03.md` §6 states precedence is "derived,
+not stored authoritatively — recomputed from sourceCategory + ownerOverride
+at query time," so a stored rank could never legitimately exist without
+contradicting the spec. For the two array columns: Postgres has no native
+mechanism to enforce a foreign key against individual elements of a jsonb
+array or a text[] value without a join table plus a trigger per element:
+building that machinery for two claim-level arrays whose actual access
+pattern (validate every referenced id exists, once, at claim-creation time)
+doesn't need ongoing per-element referential integrity was judged not worth
+the added schema complexity. The application layer
+(`ClaimEvidenceRepositoryImpl.proposeClaim`) resolves and validates every
+referenced id against the bound-environment repository before the claim is
+ever inserted — the same tradeoff slice 1 already accepted for
+`canonical_evidence_sources.applicability` (jsonb, no FK). Contradictions,
+by contrast, got a real join table (`canonical_contradiction_claims`) with
+composite FKs on both sides, since a contradiction covers a small, bounded
+set of claims where real referential integrity was judged worth the
+overhead.
