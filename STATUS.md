@@ -1,6 +1,29 @@
 # Current Project Status
 
-_Last updated: 2026-08-03_
+_Last updated: 2026-08-04_
+
+## Current authoritative state (2026-08-04)
+
+**Phase A, Phase B0, and Phase B Slices 1–3 are complete and merged.**
+The newest application merge is `gm-commerce` PR #7 at merge commit
+`2fe5831d0ffb24c9758402b0637fa7655003578e` (Phase B Slice 3: the
+`IntelligenceRepositoryV1` contract foundation, explicit capability and
+authorization/audit policy inventory, load-bearing canonical-mutation audit
+stream, additive legacy `listing_packages`/`commerce_details` dual-write,
+idempotent backfill, supersession, reconstruction ledger, and drift
+validation). The final adversarial review found and corrected the original
+contract test's failure to prove §9's command-audit requirement. Final
+verification: **467/467 tests pass**, typecheck and production build pass,
+and GitHub CI run 73 passes both ordered migrations and the consolidated
+schema against fresh PostgreSQL, including real Claim insert/supersession
+audit events. `origin/main` was confirmed at the exact merge commit above.
+
+**Phase B Slice 4 is next and has not started.** Its bounded scope is the
+eligible `LegacyCorrectionEvent` → canonical `Correction` migration job
+from PRODUCT_RESET_2026-08-03.md §14.1. Etsy and later publishing work remain
+out of scope until separately authorized. Historical status entries below
+remain unchanged as a record of what was true when written; this section is
+the controlling current state.
 
 ## Correction to this document's own prior state (2026-08-03, this update)
 
