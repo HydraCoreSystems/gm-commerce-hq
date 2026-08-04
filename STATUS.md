@@ -2,6 +2,62 @@
 
 _Last updated: 2026-08-04_
 
+## Current authoritative state — Phase C Slice 5 merged; Phase D Slice 1 built, awaiting review (2026-08-04)
+
+**This document was stale: it still named "Phase B complete" as the
+authoritative state below, but `gm-commerce` has since moved through all of
+Phase C and into Phase D.** This section is the correction and supersedes
+every status statement below it, including the "Phase B complete" section
+immediately following.
+
+**Phase C Slice 5 — Freshness, Revalidation, and Promotion Gates — is
+complete, independently re-reviewed, and merged to `gm-commerce` `main`.**
+Merged via `gm-commerce` PR **#14** at merge commit
+`b205ea79b325e96b301054c96f941a462b41ad10` (verified directly via `gh api
+repos/HydraCoreSystems/gm-commerce/pulls/14`: `merged: true`). Adds the
+append-only `canonical_freshness_policies` table and derives "the current
+policy" as the un-superseded head of that chain (`gmcom_current_freshness_policy`,
+`supabase/migrations/20260804030000_phase_c_slice5_freshness_revalidation.sql`)
+rather than from a mutable `effective_state` flag — see the corresponding new
+`DECISIONS.md` entry. Every phase and slice between Phase B (this document's
+previous authoritative state) and Phase C Slice 5 is implicitly superseded by
+this merge; this document does not attempt to reconstruct that intermediate
+history slice-by-slice; `gm-commerce`'s own git log and PR history remain the
+source of truth for it.
+
+**Phase D Slice 1 — the vision-provider contract and authorized-media-access
+boundary (`PRODUCT_RESET_2026-08-03.md` §11) — has been built and pushed, but
+is NOT yet merged and NOT yet independently re-reviewed.** Built on
+`gm-commerce` branch `agent/phase-d-slice-1-vision-provider`, HEAD commit
+`01f2f19281fd15c1d7718da208ba2092ff41bfde` as of this writing (verified via
+`gh api repos/HydraCoreSystems/gm-commerce/branches/...`). CI is green on
+real GitHub Actions. Delivers the `canonical_vision_requests` tracking table,
+a closed four-value inference-type contract (`lib/vision/`) that only ever
+takes a real, subject-authorized `PhotoAssetId`, cache-check and rate-limit/
+budget gates before any provider call, and routing a vision result into a
+Claim through the existing `ingestEvidence` → `proposeClaim` pipeline. Only
+`MockVisionProvider` exists today — no real vendor is wired in yet.
+
+**Merging Phase D Slice 1 is Phil's decision, not something this update
+makes or recommends on his behalf.** It remains open on its branch pending
+his independent re-review.
+
+**Next concrete deferred work, per `gm-commerce`'s own
+`docs/phase-d-slice-plan.md` (its "Real vision vendor wiring" slice, item 2
+in that doc's slice list) — deliberately left out of the Slice 1 build pass
+and described there as ready for the next contributor:**
+
+1. A real `VisionProvider` vendor implementation behind the existing
+   `VISION_PROVIDER` switch (today only `MockVisionProvider` exists).
+2. The full adversarial + live-Postgres CI test suite for Phase D Slice 1:
+   malformed/oversized photos, cross-environment/cross-subject authorization
+   bypass attempts, cache-poisoning attempts, budget-exhaustion load tests,
+   and the four-inference-type CHECK constraints exercised against a real
+   database.
+
+Tracked as `GMCOM-017` (see Issues) so this is assignable rather than only
+described in prose here.
+
 ## Current authoritative state — Phase B complete (2026-08-04)
 
 **Phase A, Phase B0, and all four Phase B slices are complete and merged.**
