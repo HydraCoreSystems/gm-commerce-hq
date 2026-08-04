@@ -2,6 +2,29 @@
 
 _Last updated: 2026-08-04_
 
+## Current authoritative state — Phase B complete (2026-08-04)
+
+**Phase A, Phase B0, and all four Phase B slices are complete and merged.**
+The newest application merge is `gm-commerce` PR #8 at merge commit
+`2f47ea6059eee3993dfa54507fa2a1cec501c9e0`. Slice 4 closes the Phase B0
+migration window with an idempotent, concurrency-safe
+`LegacyCorrectionEvent` to canonical `Correction` migration: only
+production, operational, genuinely owner-approved, active events can
+migrate; test/non-genuine/unmapped events remain retained and ineligible;
+temporarily unresolved canonical SKUs remain deferred and replayable.
+
+Final verification: **473/473 tests pass**, typecheck and production build
+pass, and GitHub CI run 78 passes ordered migrations and the consolidated
+schema against fresh PostgreSQL, including eligibility, deferral,
+reclassification, later identity resolution, duplicate prevention, exact
+lineage, and immutable audit emission. `origin/main` was confirmed at the
+exact merge commit above.
+
+**Phase B is complete. No later phase has started.** Etsy, marketplace
+publishing expansion, and Phase C research/knowledge ingestion remain out
+of scope until separately authorized. This section supersedes every older
+status statement below it.
+
 ## Current authoritative state (2026-08-04)
 
 **Phase A, Phase B0, and Phase B Slices 1–3 are complete and merged.**
