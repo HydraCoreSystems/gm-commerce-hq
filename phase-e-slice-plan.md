@@ -1,6 +1,9 @@
 # Phase E slice plan — independent validation and marketplace-compliance gates
 
-Status: **proposed, awaiting Phil's authorization. No implementation has started.**
+Status: **Plan approved by Phil (2026-08-04). E1 authorized to begin implementation.
+E2/E3/E4 remain unauthorized until E1 lands as an unmerged PR and passes
+independent review — each slice's authorization is separate and does not carry
+forward to the next.**
 
 Scope authority: `PRODUCT_RESET_2026-08-03.md` §12 (Marketplace-policy compliance
 gate), §13 (Required persisted artifacts, item 6), and §23 ("Phase E — independent
@@ -50,11 +53,31 @@ vision-provider contract before any vendor wiring existed.
   reasoning Phase C Slice 5 already worked through for freshness policies (a
   compliance check result is a historical fact — it should not be silently
   mutated in place).
+- **Must remain marketplace-neutral.** `ComplianceCheck` is the record of a check
+  result, parameterized by `marketplace`/`shop`/`region` — it must not bake in
+  any marketplace-specific rule logic itself (that's E2/E3's job, and even there,
+  rules are versioned policy artifacts, never hardcoded — see E2 below).
+- **Must carry a complete `RecordContext`** (§25's envelope — `environment`,
+  `recordPurpose`, `sourceRun`, `correlationId`, `ownerApproval`, `eligibility`,
+  `retention`), the same envelope every other canonical entity in this repo
+  carries. No shortcut/partial context.
+- **Must carry field-level lineage** for whatever `CommercePackage` fields the
+  check evaluated — i.e., a `ComplianceCheck` needs to be traceable back to the
+  specific field(s) it assessed, consistent with §7's `fieldLineage[]` model,
+  not just a package-wide pass/fail blob.
 - No gate-enforcement logic yet, no deterministic checks wired in yet — this
   slice only proves the record type can be created, queried, and correctly
   scoped/versioned.
 
 ### E2 — Deterministic validation layer (migrate `lib/commerce-readiness/*`)
+- **Compliance rules themselves must be versioned, marketplace-specific policy
+  artifacts** — not hard-coded denylists relocated as-is. Each rule needs
+  provenance (where it came from / who authorized it), an effective-date range,
+  and its own freshness/staleness status, following the same versioned-policy
+  pattern Phase C Slice 5 built for freshness policies and Phase E's own
+  `policySnapshotId` concept. Porting `lib/commerce-readiness/denylist.ts`'s
+  *logic* is fine; porting its hardcoded list *as a static constant* is not —
+  the list itself becomes policy data, versioned and queryable, not code.
 - Port the deterministic checks (denylist, near-duplicate detection, structural
   completeness) out of the untracked `lib/commerce-readiness/` files into Phase
   E's own module, operating against canonical `CommercePackage` / `Claim` data
@@ -62,6 +85,10 @@ vision-provider contract before any vendor wiring existed.
 - The old field-by-field blocking logic is **not** ported — it's superseded by
   the canonical `CommercePackage` readiness state (§7) and the compliance gate
   (§12), per §1's disposition.
+- **Every finding must identify**: the exact field it applies to, the specific
+  rule that fired, the policy version checked against, the evidence backing the
+  finding, a severity level, and a remediation (what would need to change to
+  pass). A finding that only says "FAIL" without all six of these is incomplete.
 - Each deterministic check run produces a persisted validation-result artifact
   (§13 item 6 — "Deterministic validation results, formalized as their own
   artifact rather than folded silently into a pass/fail").
@@ -77,6 +104,11 @@ vision-provider contract before any vendor wiring existed.
   the change — they become `STALE` immediately, never silently still-passing.
   Reuse the Phase C Slice 5 "derive current state correctly, don't freeze a flag
   at write time" pattern here directly; do not reintroduce that bug class.
+- **Invalidation must never delete historical results.** A `ComplianceCheck`
+  that becomes `STALE` is a new state derived/recorded, not a deletion or
+  overwrite of the prior result — the historical record of what passed/failed
+  and when must remain queryable. Readiness is blocked going forward; history
+  is preserved.
 - CI coverage in the same live-Postgres pattern already used for Phase C Slice 5
   and Phase D: real fail-closed assertions, not mocked.
 
@@ -87,7 +119,10 @@ vision-provider contract before any vendor wiring existed.
 - Add a read-only review page (same pattern as Phase D Slice 4's
   `/photos/[sku]/vision` page) surfacing `ComplianceCheck` results per
   `CommercePackage` — pass/fail/stale, violations, which policy version was
-  checked against. No approve/override actions in this slice; owner-override
+  checked against. **The page must present a completed compliance assessment
+  and any exceptions clearly — it exists so Phil can review outcomes, not so
+  Phil has to perform routine compliance work himself.** No approve/override
+  actions in this slice; owner-override
   mechanics belong to §14's `Correction`/`OwnerDecision` flow, out of scope here.
 
 ## Explicitly out of scope for Phase E (do not let any slice's agent drift into
