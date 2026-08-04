@@ -30,7 +30,7 @@ boundary (`PRODUCT_RESET_2026-08-03.md` §11) — has been built and pushed, but
 is NOT yet merged and NOT yet independently re-reviewed.** Built on
 `gm-commerce` branch `agent/phase-d-slice-1-vision-provider`, HEAD commit
 `01f2f19281fd15c1d7718da208ba2092ff41bfde` as of this writing (verified via
-`gh api repos/HydraCoreSystems/gm-commerce/branches/...`). CI is green on
+`gh api repos/HydraCoreSystems/gm-commerce/branches/agent/phase-d-slice-1-vision-provider`). CI is green on
 real GitHub Actions. Delivers the `canonical_vision_requests` tracking table,
 a closed four-value inference-type contract (`lib/vision/`) that only ever
 takes a real, subject-authorized `PhotoAssetId`, cache-check and rate-limit/
