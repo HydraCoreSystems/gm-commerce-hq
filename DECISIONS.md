@@ -511,3 +511,34 @@ remains defense-in-depth only. What protects today's data:
 anywhere, with a caller-chosen environment, full stop — not because of
 where a file lives, but because its own constructor refuses every caller
 who cannot produce a value that exists only in its own module's closure.
+
+## 2026-08-04 — "Current" on an append-only versioned table is derived from the un-superseded chain head, never a mutable status flag
+
+**Decision:** Any canonical table whose rows must never be mutated or
+deleted after insert (an append-only, fully-versioned history table) must
+determine "the current row" by querying for the row that no other row's
+`supersedes_<x>_id`-style pointer targets yet — never by adding a mutable
+`effective_state`/`is_current`/`active` flag that gets flipped on the old
+row when a new one is inserted. A guard trigger on insert additionally
+rejects (does not silently rewrite) any insert that would branch the chain,
+i.e. two different rows both claiming to supersede the same predecessor,
+serialized via a row lock on the predecessor during that check.
+
+**Reason:** Established by Phase C Slice 5 (Freshness, Revalidation, and
+Promotion Gates — `gm-commerce` PR #14, merge commit
+`b205ea79b325e96b301054c96f941a462b41ad10`) for
+`canonical_freshness_policies` and its `gmcom_current_freshness_policy(...)`
+function (`supabase/migrations/20260804030000_phase_c_slice5_freshness_revalidation.sql`).
+A mutable "active" flag on an otherwise append-only table is a real
+integrity hazard: it can be flipped incorrectly, flipped twice, or drift out
+of sync with the actual insert history, and nothing then prevents "current"
+from silently pointing at a stale or wrong row. Deriving "current" purely
+from chain structure (no successor points at me yet) makes an incorrect
+"current" state structurally impossible rather than merely policed by
+application discipline — the same reasoning already applied to
+environment-binding and to the private-constructor/token repository-
+construction boundary above. This is recorded here as a reusable
+architectural pattern: any future append-only versioned canonical table
+(not just freshness policies) should default to this "derive current from
+the un-superseded chain head" shape rather than reintroducing a mutable
+current-state flag.
