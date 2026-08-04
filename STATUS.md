@@ -2,6 +2,59 @@
 
 _Last updated: 2026-08-04_
 
+## Current authoritative state — Phase C Slice 5 merged (2026-08-04)
+
+**Phase C (OneDrive evidence library and secure ingestion) is now five
+slices deep, all merged to `gm-commerce` `main`.** This document's prior
+"Phase B complete, no later phase has started" framing below is stale —
+Phase C was separately authorized and slices 1–4 (OneDrive connector
+boundary, durable ingestion ledger, evidence revision ingestion, secure
+extraction/adversarial validation — `gm-commerce` PRs #9–#13) landed
+without an intermediate update here. Recording that gap plainly rather
+than editing it out: this section is the catch-up, not a claim that
+nothing happened in between.
+
+**Slice 5 (freshness, revalidation, source-family assessment,
+contradiction routing, promotion gates)** merged as `gm-commerce` PR #14,
+merge commit `b205ea79b325e96b301054c96f941a462b41ad10`, authorized by
+Phil. This slice's path to merge is worth recording precisely, since it's
+a direct example of the multi-agent review discipline this project now
+runs on:
+
+- The implementing agent's own report claimed CI was green before an
+  independent review (Claude, standing in for Codex, who was at a usage
+  limit) found it wasn't: `gmcom_guard_freshness_policy_activate` silently
+  rewrote a correctly-linked new policy version to `superseded` instead of
+  promoting it — since the table is append-only, this meant a freshness
+  policy could never actually be changed after its first creation, with no
+  error ever raised, and the CI test asserted the broken behavior as
+  correct. Reproduced live against Postgres before reporting it.
+- Two more rounds followed the same pattern — a fix reported as complete,
+  independently re-verified rather than trusted, a real gap found each
+  time (a second report claimed "functionally equivalent," which a live
+  reproduction disproved; a third fix for the real structural bug
+  introduced a CI test-isolation regression in an unrelated step, caught
+  by checking the actual GitHub Actions run rather than trusting a
+  "10/10 green" claim).
+- The structural fix that survived: `canonical_freshness_policies`' current
+  version is now derived as the head of its append-only `supersedes_policy_id`
+  chain (the row nothing else references yet) via a dedicated
+  `gmcom_current_freshness_policy()` function, never a mutable flag frozen
+  at insert time; the insert trigger locks the predecessor row and rejects
+  (raises) branching, orphaned, or non-increasing supersession attempts
+  instead of silently rewriting them.
+- Final verification, independently reproduced by the reviewer (not taken
+  from any agent's report): typecheck clean, **587/587 tests pass**,
+  production build succeeds, all GitHub Actions jobs green on the actual
+  merged SHA, and the entire `phase-c-slice5-live` CI job replayed by hand
+  against a fresh local Postgres 16 instance end-to-end with zero errors.
+
+**Phase C Slice 6 (if any) is not authorized and has not started.** Etsy
+and marketplace-publishing expansion remain out of scope until separately
+authorized. This section supersedes every older status statement below
+it, including the "Phase B complete, no later phase has started" section
+immediately following.
+
 ## Current authoritative state — Phase B complete (2026-08-04)
 
 **Phase A, Phase B0, and all four Phase B slices are complete and merged.**
