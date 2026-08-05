@@ -39,6 +39,7 @@ This repository is the persistent source of truth for project scope, priorities,
 7. When stopping because of completion, a blocker, or a usage limit, leave a handoff using `AI_HANDOFF.md`.
 8. Clearly distinguish work that was tested from work that was only written or reviewed.
 9. Never claim completion when external setup, user testing, or verification remains outstanding.
+10. Before treating another repository's endpoint or feature as available for integration, verify it is actually committed and deployed — not just present in a local working tree. (GMCOM-004 was assigned assuming GMCOM-003's Skrybix endpoint was live; it had never been committed to git in that repo at all. Confirm with the repo's own git history, not a prior session's description of it.)
 
 ## Current Product Boundaries
 

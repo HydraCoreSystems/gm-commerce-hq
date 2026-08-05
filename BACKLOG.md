@@ -22,6 +22,35 @@ GitHub Issues are the executable work queue. This document holds ideas and work 
 - Automated stale-listing identification and refresh suggestions.
 - Deeper GM Money integration.
 
+## Flagged architectural risks (not yet actionable — no code changed)
+
+- **GM Commerce's Product SKU Generator integration is local-filesystem-only,
+  which conflicts with its own stated Vercel deployment target.**
+  `lib/sources/sku-generator.ts` and `lib/photo-root.ts` (plus the photo-
+  folder creation in `app/pipeline/actions.ts`) read/write the SKU
+  Generator's local files (`data/sku-log.json`, `data/config.json`) and
+  the local OneDrive photo root directly via `fs`. This works today
+  because GM Commerce only runs on `localhost` on the same machine as the
+  SKU Generator. The moment GM Commerce is deployed to Vercel (its own
+  intended stack) this breaks completely — a Vercel serverless function
+  has no access to a local Windows filesystem at all. Concretely: this
+  also means nobody but Phil, at his own desktop, can ever select or
+  process a non-plant product — Crystal couldn't do this from her phone
+  the way she already does in GM Money, even after Version 1 ships.
+  Skrybix's own pattern (a small authenticated HTTP endpoint,
+  `sku-registry`) is the proven fix once this needs solving — the Product
+  SKU Generator would need an equivalent tiny local API instead of GM
+  Commerce reading its files directly. Not urgent while GM Commerce is
+  local-only; becomes a real blocker the moment real deployment or
+  phone-based use is wanted.
+- **GM Commerce has no authentication at all.** Fine while it only runs on
+  `localhost`; becomes a real exposure (a public URL with unauthenticated
+  write access to real product data and local photo-folder creation) the
+  moment it's deployed. Skrybix's shared-password-plus-signed-cookie
+  pattern is the nearest proven precedent, though the eventual direction
+  for this business is real per-person accounts (see `gm-money-webapp`'s
+  `CLAUDE.md`), not another shared password.
+
 ## Future
 
 - More autonomous merchandising and marketing execution.
