@@ -16,18 +16,13 @@ Implementation has resumed under the product-reset architecture. Phase F builds 
 | F4 | #26 | Marketplace suitability | `40e672f` |
 | F5 | #27 | Photography | `f242e42` |
 | F6 | #28 | SEO | `a46a04` |
+| F7 | #29 | Merchandising | `7063838` |
 
-`gm-commerce/main` is at `7063838` (PR #28 merge). Typecheck, tests, build, schema-from-empty, and all live-Postgres jobs pass.
+`gm-commerce/main` is at `4eac37` (PR #29 merge). **Phase F complete.** All seven core recommendation services merged with CI-verified test coverage. Typecheck, tests, build, schema-from-empty, and all live-Postgres jobs pass.
 
-### In Progress
+### Phase F complete
 
-None. Phase F Slice 6 merged 2026-08-05.
-
-### Planned (not started)
-
-| Slice | Service | Kind | Depends on |
-|---|---|---|---|
-| F7 | Merchandising | `merchandising` | F6 merge |
+No remaining Phase F work. Phase G (owner-editable policies and learned-rule activation, per `PRODUCT_RESET_2026-08-03.md` §23) is the next phase.
 
 See `phase-f-slice-plan.md` for per-slice scope, acceptance criteria, and exclusions.
 

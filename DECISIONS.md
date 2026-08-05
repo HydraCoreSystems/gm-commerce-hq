@@ -530,6 +530,12 @@ who cannot produce a value that exists only in its own module's closure.
 
 **Reason:** The brief's column names were speculative, not verified against the actual schema. The implementation correctly adapted to what exists. Engineering the correct thing (read real columns, derive quality signals from already-persisted vision claims) is the correct adaptation. No data was invented, no thresholds were fabricated.
 
+## 2026-08-05 — Merchandising live-CI precedence fixture uses verified-vs-under_review because Phase B capability gate blocks owner-override seeding
+
+**Decision:** The Phase F Slice 7 live-Postgres CI job tests conflict resolution with verified-vs-under_review claims rather than owner-override claims. The Phase B capability gate (`rejectPrivilegedCreationContext`) fail-closes all owner-authority transitions, preventing insertion of a `canonical_owner_decisions` row from CI. Owner-override precedence is fully covered by unit tests (which use in-memory Claim fixtures, bypassing the DB gate).
+
+**Reason:** The CI constraint is a Phase B architectural decision (privileged context cannot be fabricated), not a Slice 7 gap. Working around it would require relaxing the capability gate specifically for test infrastructure — a worse outcome than accepting that one precedence variant is unit-tested rather than integration-tested. All other precedence variants (verified-vs-under_review, confidence tiebreakers, freshness tiebreakers) are exercised in live Postgres.
+
 ## 2026-08-05 — SEO recommendation reads listing_packages.proposed_title and listing_packages.category (not title / product_type)
 
 **Decision:** The Phase F Slice 6 brief specified `listing_packages.title` and `listing_packages.product_type` as data sources — these column names don't match the actual schema. The implementation reads `listing_packages.proposed_title` and `listing_packages.category` (the real column names) and does not read `listing_packages.seo_title` or `listing_packages.seo_description` (which exist only in the undocumented live-database migration).
