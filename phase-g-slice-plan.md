@@ -51,8 +51,8 @@ Each slice depends strictly on the previous slice's merge into `main`.
 |---|---|---|---|
 | G1 | Policy management — create, query, evaluate | #30 | Merged | `4eac37` |
 | G2 | Owner confirmation flow | #31 | Merged | `a24ad83` |
-| G3 | Correction capture and scope inference | Not started | After G2 |
-| G4 | Rule activation engine — learned rules, activate/revoke/query | Not started | After G3 |
+| G3 | Correction capture and scope inference | #32 | Merged | `e5c708b` |
+| G4 | Rule activation engine — learned rules, activate/revoke/query | — | Brief ready, awaiting Phil's authorization | `b0d5a03` |
 | G5 | RBAC enforcement — §15 role matrix at Repository command layer | Not started | After G4 |
 
 ## Per-slice specification

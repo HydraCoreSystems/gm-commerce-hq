@@ -12,8 +12,8 @@ Phase G enables Phil to edit policies and confirm Phase F recommendations into s
 |---|---|---|
 | G1 | Policy management — create, query, evaluate policies | #30 | Merged | `4eac37` |
 | G2 | Owner confirmation flow — recommendation → owner decision | #31 | Merged | `a24ad83` |
-| G3 | Correction capture and scope inference | — | Brief ready, awaiting authorization | `e5c708b` |
-| G4 | Rule activation engine — learned rules table, activate/revoke/query | Not started |
+| G3 | Correction capture and scope inference | #32 | Merged | `e5c708b` |
+| G4 | Rule activation engine — learned rules table, activate/revoke/query | — | Brief ready, awaiting authorization | `b0d5a03` |
 | G5 | RBAC enforcement — §15 role matrix at Repository command layer | Not started |
 
 `gm-commerce/main` is at `4eac37`. All Phase G infrastructure prerequisites (tables, contract interface) exist from Phases B-D.
