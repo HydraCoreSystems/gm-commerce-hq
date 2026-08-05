@@ -19,7 +19,7 @@ Each slice builds exactly one recommendation service. Services share the same `S
 | F1 | SelectionTrace foundation | (infrastructure) | #23 | Merged | `1ba4ac9` |
 | F2 | Price | `price` | #24 | Merged | `d565e65` |
 | F3 | Taxonomy + Collections | `taxonomy` / `collections` | #25 | Merged | `d258ab3` |
-| F4 | Marketplace suitability | `marketplace_suitability` | #26 | Open, CI green, awaiting Phil's merge authorization | `40e672f` |
+| F4 | Marketplace suitability | `marketplace_suitability` | #26 | Merged | `40e672f` |
 | F5 | Photography | `photography` | — | Not started | `main` after F4 merge |
 | F6 | SEO | `seo` | — | Not started | `main` after F5 merge |
 | F7 | Merchandising | `merchandising` | — | Not started | `main` after F6 merge |
