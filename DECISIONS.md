@@ -530,6 +530,12 @@ who cannot produce a value that exists only in its own module's closure.
 
 **Reason:** The brief's column names were speculative, not verified against the actual schema. The implementation correctly adapted to what exists. Engineering the correct thing (read real columns, derive quality signals from already-persisted vision claims) is the correct adaptation. No data was invented, no thresholds were fabricated.
 
+## 2026-08-05 — SEO recommendation reads listing_packages.proposed_title and listing_packages.category (not title / product_type)
+
+**Decision:** The Phase F Slice 6 brief specified `listing_packages.title` and `listing_packages.product_type` as data sources — these column names don't match the actual schema. The implementation reads `listing_packages.proposed_title` and `listing_packages.category` (the real column names) and does not read `listing_packages.seo_title` or `listing_packages.seo_description` (which exist only in the undocumented live-database migration).
+
+**Reason:** Same pattern as F5's schema-correction: the brief's column names were speculative, the implementation correctly adapted to reality.
+
 ## 2026-08-05 — Photography signals are always emitted in a fixed documented order
 
 ## 2026-08-04 — "Current" on an append-only versioned table is derived from the un-superseded chain head, never a mutable status flag
