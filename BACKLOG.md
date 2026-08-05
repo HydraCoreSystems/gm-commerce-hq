@@ -51,6 +51,11 @@ GitHub Issues are the executable work queue. This document holds ideas and work 
   for this business is real per-person accounts (see `gm-money-webapp`'s
   `CLAUDE.md`), not another shared password.
 
+## Phase F deferred
+
+- **Photography recommendation service: migrate photo-set signal derivation to canonical photo claims when the GMCOM-011-to-canonical bridge lands.** Currently reads `photo_sets`/`photo_assets`/`photo_derivatives` legacy tables directly. Once product reset Phase B creates canonical photo claim predicates, the photography service's data-reading layer should consume those claims rather than the legacy tables. The recommendation value shape and §18 SelectionTrace contract remain unchanged — this is a data-source migration, not a contract change. Tracked in `DECISIONS.md` (2026-08-05).
+- **Phase F Slice 6 (SEO) and Slice 7 (merchandising)** — planned in `phase-f-slice-plan.md`, not yet started. No briefs exist yet.
+
 ## Future
 
 - More autonomous merchandising and marketing execution.

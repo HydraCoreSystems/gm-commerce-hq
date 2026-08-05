@@ -512,6 +512,18 @@ anywhere, with a caller-chosen environment, full stop — not because of
 where a file lives, but because its own constructor refuses every caller
 who cannot produce a value that exists only in its own module's closure.
 
+## 2026-08-05 — Marketplace suitability resolves conflicts per marketplace key, not forced to a single marketplace winner
+
+**Decision:** A subject may be suitable for multiple marketplaces independently. The marketplace-suitability recommendation service evaluates each marketplace separately; conflicts are resolved only within a single marketplace key (e.g., two claims disagreeing about "Shopify"). Distinct marketplaces (Shopify, Etsy, Amazon) are all surfaced as candidates rather than forced into a single winner.
+
+**Reason:** A suitability recommendation that forces a single "best" marketplace would suppress valid multi-channel candidates. The claim model already supports independent suitability claims per marketplace, and the precedence machinery (owner override > verified > under_review > stale, with confidence/freshness tiebreakers) already resolves within-key conflicts. Preserving multi-marketplace candidates reflects the real business operation — Gathering Moss sells on multiple channels — without compromising the single-SelectionTrace-per-recommendation contract.
+
+## 2026-08-05 — Photography recommendation reads vision claims + legacy photo-set state without creating intermediate photo-claim predicates
+
+**Decision:** The Phase F Slice 5 photography recommendation service evaluates photography readiness by reading `vision.*` claims (from Phase D's vision provider contract) through the claim repository and reading `photo_sets`/`photo_assets`/`photo_derivatives` (from GMCOM-011's legacy photo pipeline) through direct Supabase queries. It does not create new claim predicates (e.g., `photo.hero_selected`, `photo.alt_text_complete`) to bridge the two layers. Each signal (hero, alt text, derivatives present, photo-set approved, vision analysis presence) is derived and surfaced in the recommendation value, not stored as an intermediate claim.
+
+**Reason:** Creating photo-claim predicates would require a migration and broader architectural decisions about migrating GMCOM-011's legacy tables into the canonical claim model — work that belongs to the product reset's Phase B (canonical entities and claim model), not to Phase F's recommendation services. Reading both data sources directly follows the same pattern the compliance gate already uses (reading a derived outcome from a non-claim source) and avoids blocking the photography recommendation on a migration that has not been designed or approved. When the GMCOM-011-to-canonical bridge is eventually built, the photography service's data reading can be updated to consume photo claims rather than legacy table rows — but the recommendation value shape and the §18 SelectionTrace contract stay the same, so consumers of the recommendation are not broken by that future migration.
+
 ## 2026-08-04 — "Current" on an append-only versioned table is derived from the un-superseded chain head, never a mutable status flag
 
 **Decision:** Any canonical table whose rows must never be mutated or
