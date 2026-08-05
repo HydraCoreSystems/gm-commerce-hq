@@ -14,18 +14,18 @@ Implementation has resumed under the product-reset architecture. Phase F builds 
 | F2 | #24 | Price recommendation | `d565e65` |
 | F3 | #25 | Taxonomy + Collections | `d258ab3` |
 | F4 | #26 | Marketplace suitability | `40e672f` |
+| F5 | #27 | Photography | `f242e42` |
 
-`gm-commerce/main` is at `f242e42` (PR #26 merge). Typecheck, tests, build, schema-from-empty, and all live-Postgres jobs pass.
+`gm-commerce/main` is at `a46a04` (PR #27 merge). Typecheck, tests, build, schema-from-empty, and all live-Postgres jobs pass.
 
 ### In Progress
 
-None. Phase F Slice 4 merged 2026-08-05.
+None. Phase F Slice 5 merged 2026-08-05.
 
 ### Planned (not started)
 
 | Slice | Service | Kind | Depends on |
 |---|---|---|---|
-| F5 | Photography | `photography` | F4 merge |
 | F6 | SEO | `seo` | F5 merge |
 | F7 | Merchandising | `merchandising` | F6 merge |
 

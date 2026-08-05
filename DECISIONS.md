@@ -524,6 +524,14 @@ who cannot produce a value that exists only in its own module's closure.
 
 **Reason:** Creating photo-claim predicates would require a migration and broader architectural decisions about migrating GMCOM-011's legacy tables into the canonical claim model — work that belongs to the product reset's Phase B (canonical entities and claim model), not to Phase F's recommendation services. Reading both data sources directly follows the same pattern the compliance gate already uses (reading a derived outcome from a non-claim source) and avoids blocking the photography recommendation on a migration that has not been designed or approved. When the GMCOM-011-to-canonical bridge is eventually built, the photography service's data reading can be updated to consume photo claims rather than legacy table rows — but the recommendation value shape and the §18 SelectionTrace contract stay the same, so consumers of the recommendation are not broken by that future migration.
 
+## 2026-08-05 — Photography recommendation reads hero from photo_derivatives.is_hero and derives blur/exposure/near-duplicate from vision claims, not from inspection_result columns
+
+**Decision:** The Phase F Slice 5 brief specified `photo_sets.hero_photo_id` and `photo_assets.inspection_result` (JSONB with `blurScore`, `exposureMean`, `perceptualHash`) as data sources — these columns do not exist in the actual legacy schema. The implementation reads hero from `photo_derivatives.is_hero` (the real column) and derives blur/exposure/near-duplicate signals from vision claims (`unusableReason` for blur/exposure, `isDuplicateView` for near-duplicates) rather than inventing thresholds on non-existent inspection columns. Photo-set lookup is SKU-only (legacy tables have no environment column); ProductConcept subjects receive `not_applicable` photo-set signals while vision claims are still assessed.
+
+**Reason:** The brief's column names were speculative, not verified against the actual schema. The implementation correctly adapted to what exists. Engineering the correct thing (read real columns, derive quality signals from already-persisted vision claims) is the correct adaptation. No data was invented, no thresholds were fabricated.
+
+## 2026-08-05 — Photography signals are always emitted in a fixed documented order
+
 ## 2026-08-04 — "Current" on an append-only versioned table is derived from the un-superseded chain head, never a mutable status flag
 
 **Decision:** Any canonical table whose rows must never be mutated or

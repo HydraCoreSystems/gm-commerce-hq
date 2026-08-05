@@ -20,8 +20,8 @@ Each slice builds exactly one recommendation service. Services share the same `S
 | F2 | Price | `price` | #24 | Merged | `d565e65` |
 | F3 | Taxonomy + Collections | `taxonomy` / `collections` | #25 | Merged | `d258ab3` |
 | F4 | Marketplace suitability | `marketplace_suitability` | #26 | Merged | `40e672f` |
-| F5 | Photography | `photography` | — | Brief ready (`briefs/phase-f-slice-5-photography.md`), awaiting Phil's authorization | `f242e42` |
-| F6 | SEO | `seo` | — | Not started | `main` after F5 merge |
+| F5 | Photography | `photography` | #27 | Merged | `f242e42` |
+| F6 | SEO | `seo` | — | Brief ready, awaiting Phil's authorization | `a46a04` |
 | F7 | Merchandising | `merchandising` | — | Not started | `main` after F6 merge |
 
 Each slice depends strictly on the previous slice's merge into `main`. No parallel service branches.
