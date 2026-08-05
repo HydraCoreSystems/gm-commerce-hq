@@ -50,7 +50,7 @@ Each slice depends strictly on the previous slice's merge into `main`.
 | Slice | Scope | Status | Base SHA |
 |---|---|---|---|
 | G1 | Policy management — create, query, evaluate | #30 | Merged | `4eac37` |
-| G2 | Owner confirmation flow — record decisions, recommendation → rule path | Not started | After G1 |
+| G2 | Owner confirmation flow | #31 | Merged | `a24ad83` |
 | G3 | Correction capture and scope inference | Not started | After G2 |
 | G4 | Rule activation engine — learned rules, activate/revoke/query | Not started | After G3 |
 | G5 | RBAC enforcement — §15 role matrix at Repository command layer | Not started | After G4 |
