@@ -2,27 +2,35 @@
 
 _Last updated: 2026-08-05_
 
-## Phase F — Core Recommendation Services (active)
+## Phase G — Owner-Editable Policies and Learned-Rule Activation (planned)
 
-Implementation has resumed under the product-reset architecture. Phase F builds the seven core recommendation services defined in `PRODUCT_RESET_2026-08-03.md` §23. Each service produces a §18 `SelectionTrace`. The authoritative slice plan is `phase-f-slice-plan.md` (this repo).
+Phase G enables Phil to edit policies and confirm Phase F recommendations into standing learned rules. The authoritative slice plan is `phase-g-slice-plan.md` (this repo).
 
-### Merged
+### Planned
 
-| Slice | PR | Service | Base SHA |
+| Slice | Scope | Status |
+|---|---|---|
+| G1 | Policy management — create, query, evaluate policies | Brief ready (`briefs/phase-g-slice-1-policy-management.md`), awaiting Phil's authorization |
+| G2 | Owner confirmation flow — recommendation → owner decision | Not started |
+| G3 | Correction capture and scope inference | Not started |
+| G4 | Rule activation engine — learned rules table, activate/revoke/query | Not started |
+| G5 | RBAC enforcement — §15 role matrix at Repository command layer | Not started |
+
+`gm-commerce/main` is at `4eac37`. All Phase G infrastructure prerequisites (tables, contract interface) exist from Phases B-D.
+
+## Phase F (complete)
+
+All seven core recommendation services merged in PRs #23–#29. Full closeout in `phase-f-closeout-report.md`.
+
+| Slice | PR | Service | Kind |
 |---|---|---|---|
-| F1 | #23 | SelectionTrace foundation | `1ba4ac9` |
-| F2 | #24 | Price recommendation | `d565e65` |
-| F3 | #25 | Taxonomy + Collections | `d258ab3` |
-| F4 | #26 | Marketplace suitability | `40e672f` |
-| F5 | #27 | Photography | `f242e42` |
-| F6 | #28 | SEO | `a46a04` |
-| F7 | #29 | Merchandising | `7063838` |
-
-`gm-commerce/main` is at `4eac37` (PR #29 merge). **Phase F complete.** All seven core recommendation services merged with CI-verified test coverage. Typecheck, tests, build, schema-from-empty, and all live-Postgres jobs pass.
-
-### Phase F complete
-
-No remaining Phase F work. Phase G (owner-editable policies and learned-rule activation, per `PRODUCT_RESET_2026-08-03.md` §23) is the next phase.
+| F1 | #23 | SelectionTrace foundation | infrastructure |
+| F2 | #24 | Price | `price` |
+| F3 | #25 | Taxonomy + Collections | `taxonomy` / `collections` |
+| F4 | #26 | Marketplace suitability | `marketplace_suitability` |
+| F5 | #27 | Photography | `photography` |
+| F6 | #28 | SEO | `seo` |
+| F7 | #29 | Merchandising | `merchandising` |
 
 See `phase-f-slice-plan.md` for per-slice scope, acceptance criteria, and exclusions.
 
@@ -76,9 +84,9 @@ Supabase project: `wcrcllhvgbhykbonopzx` (separate co-owner account).
 
 | Contributor | Role | Capacity | Current assignment |
 |---|---|---|---|
-| ChatGPT | Project manager / coordinator | Available | Phase F closeout; Phase G planning |
-| Claude | Primary implementation | Available | Phase F complete; awaiting Phase G |
-| GitHub Copilot | Implementation contributor | Quota-limited | Phase F slices 3-7; handoffs |
-| Phil | Product owner | Available as schedule permits | Phase G authorization; Shopify CSV export |
+| ChatGPT | Project manager / coordinator | Available | Phase G planning |
+| Claude | Primary implementation | Available | Phase G, awaiting slice assignment |
+| GitHub Copilot | Implementation contributor | Quota-limited | Phase F slices 3-7 + handoffs |
+| Phil | Product owner | Available as schedule permits | Phase G authorization |
 
 Capacity status should be updated whenever a provider limit is reached or resets.
