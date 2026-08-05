@@ -21,8 +21,8 @@ Each slice builds exactly one recommendation service. Services share the same `S
 | F3 | Taxonomy + Collections | `taxonomy` / `collections` | #25 | Merged | `d258ab3` |
 | F4 | Marketplace suitability | `marketplace_suitability` | #26 | Merged | `40e672f` |
 | F5 | Photography | `photography` | #27 | Merged | `f242e42` |
-| F6 | SEO | `seo` | — | Brief ready, awaiting Phil's authorization | `a46a04` |
-| F7 | Merchandising | `merchandising` | — | Not started | `main` after F6 merge |
+| F6 | SEO | `seo` | #28 | Merged | `a46a04` |
+| F7 | Merchandising | `merchandising` | — | Brief ready, awaiting Phil's authorization | `7063838` |
 
 Each slice depends strictly on the previous slice's merge into `main`. No parallel service branches.
 
