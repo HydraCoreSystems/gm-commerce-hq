@@ -49,7 +49,7 @@ Each slice depends strictly on the previous slice's merge into `main`.
 
 | Slice | Scope | Status | Base SHA |
 |---|---|---|---|
-| G1 | Policy management — create, query, evaluate | Not started | `4eac37` |
+| G1 | Policy management — create, query, evaluate | #30 | Merged | `4eac37` |
 | G2 | Owner confirmation flow — record decisions, recommendation → rule path | Not started | After G1 |
 | G3 | Correction capture and scope inference | Not started | After G2 |
 | G4 | Rule activation engine — learned rules, activate/revoke/query | Not started | After G3 |
