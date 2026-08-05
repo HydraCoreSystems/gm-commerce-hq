@@ -10,8 +10,8 @@ Phase G enables Phil to edit policies and confirm Phase F recommendations into s
 
 | Slice | Scope | Status |
 |---|---|---|
-| G1 | Policy management — create, query, evaluate policies | Brief ready (`briefs/phase-g-slice-1-policy-management.md`), awaiting Phil's authorization |
-| G2 | Owner confirmation flow — recommendation → owner decision | Not started |
+| G1 | Policy management — create, query, evaluate policies | #30 | Merged | `4eac37` |
+| G2 | Owner confirmation flow — recommendation → owner decision | — | Brief ready, awaiting authorization | `a24ad83` |
 | G3 | Correction capture and scope inference | Not started |
 | G4 | Rule activation engine — learned rules table, activate/revoke/query | Not started |
 | G5 | RBAC enforcement — §15 role matrix at Repository command layer | Not started |
