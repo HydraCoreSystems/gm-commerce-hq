@@ -28,7 +28,14 @@ See `phase-f-slice-plan.md` for per-slice scope, acceptance criteria, and exclus
 
 ## Product Reset
 
-`PRODUCT_RESET_2026-08-03.md` is at Revision 3 (corrected), awaiting Copilot's focused re-review. Awaiting `APPROVE FOR IMPLEMENTATION` / `APPROVE AFTER DOCUMENTED CORRECTIONS` / `REQUIRES REVISION 4`. The reset does not block Phase F — Phase F is explicitly sequenced in the reset's own §23 and the merged slices follow the reset's architecture (canonical entities, claim model, compliance gate, SelectionTrace).
+`PRODUCT_RESET_2026-08-03.md` is at Revision 3. Copilot's re-review returned `REQUIRES REVISION 3 AND RE-REVIEW`; Revision 3 incorporated the corrections; Codex subsequently returned `APPROVE AFTER DOCUMENTED CORRECTIONS`. Per §24, the review step is complete. The reset does not block Phase G.
+
+## Schema State
+
+- Migration gap resolved: `commerce_details` table and `listing_packages.seo_title`/`seo_description` columns have committed DDL at `20260802040000_commerce_readiness.sql`.
+- `20260803000000_commerce_field_ownership.sql` (price/`content_provenance`) was deliberately retired as never-applied.
+- CI schema-from-empty passes from committed migrations.
+- `HY-LOB01-C04` test data verified absent from the live database (2026-08-05).
 
 ## Completed (pre-Phase F)
 
@@ -52,29 +59,26 @@ Supabase project: `wcrcllhvgbhykbonopzx` (separate co-owner account).
 
 ## Active Work
 
-- **Live database migration gap**: The `commerce_details` table and `listing_packages.content_provenance` column exist in the live Supabase database but the migration files are uncommitted (see `PRODUCT_RESET_2026-08-03.md` §1, §1.1). CI cannot reproduce the schema from git alone. This is a pre-Phase-A blocker per the reset document.
-- **`HY-LOB01-C04` test data**: Quarantine disposition pending Phil's direction (see `PRODUCT_RESET_2026-08-03.md` §1.2). Records untouched per standing constraint — no deletion without Phil's explicit approval.
-- **GitHub Issues**: Several tasks (GMCOM-012, Phase F slices) lack formal Issues.
+- **Pre-Phase G audit**: Phase F comprehensive survey complete (see handoff). All 7 services consistent in trust boundary, precedence, confidence math, compliance gate interaction, and §18 trace contract. No cross-service dependencies, no TODOs, no commented-out code.
+- **GitHub Issues**: Several tasks lack formal Issues. GitHub API access has been intermittent.
 - **Shopify CSV export**: Phil to provide a current export for GMCOM-014 real-export validation.
 
 ## Current Blockers
 
-- Product reset awaiting Copilot's re-review (does not block Phase F but gates broader architectural decisions).
 - No live channel between AI contributors; coordination depends on Phil relaying.
 - AI provider usage limits not automatically visible.
 
-## Next Highest-Priority Tasks
+## Next Phase
 
-1. Coordinator prepares Slice 5 (photography) implementation brief from `main` at `f242e42`.
-2. Commit the undocumented live-database migration so the schema is reproducible (reset §1.1 prerequisite).
+**Phase G** — owner-editable policies and learned-rule activation, per `PRODUCT_RESET_2026-08-03.md` §23. No briefs exist yet.
 
 ## AI Capacity
 
 | Contributor | Role | Capacity | Current assignment |
 |---|---|---|---|
-| ChatGPT | Project manager / coordinator | Available | Headquarters reconciliation, slice planning |
-| Claude | Primary implementation | Available | Phase F Slices 1-4; awaiting next assignment |
-| GitHub Copilot | Implementation contributor | Quota-limited | PR #26 review skipped; prior work on GMCOM-003/005/010/013/014 |
-| Phil | Product owner | Available as schedule permits | Merge authorization for PR #26; Shopify CSV export; reset review |
+| ChatGPT | Project manager / coordinator | Available | Phase F closeout; Phase G planning |
+| Claude | Primary implementation | Available | Phase F complete; awaiting Phase G |
+| GitHub Copilot | Implementation contributor | Quota-limited | Phase F slices 3-7; handoffs |
+| Phil | Product owner | Available as schedule permits | Phase G authorization; Shopify CSV export |
 
 Capacity status should be updated whenever a provider limit is reached or resets.
