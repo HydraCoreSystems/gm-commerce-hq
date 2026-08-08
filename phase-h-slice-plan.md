@@ -19,7 +19,7 @@ Each slice depends strictly on the previous slice's merge into `main`.
 
 ## Current state (2026-08-08)
 
-Application `HydraCoreSystems/gm-commerce` `main` is at `4b5ff6abc13789d4d06bb4b50d42615290becf32` (merge of PR #48).
+Application `HydraCoreSystems/gm-commerce` `main` is at `905d658f5996da7b999d070e7ac25b69825e92eb` (merge of PR #50).
 
 | Slice | Scope | PR | Status | Merge |
 |---|---|---|---|---|
@@ -29,6 +29,8 @@ Application `HydraCoreSystems/gm-commerce` `main` is at `4b5ff6abc13789d4d06bb4b
 | Phase E prerequisite correction | Operational-only compliance current-state/gate derivation | #45 | Merged | `1472660232d8475229cd1da07a2c9105d55ff82c` |
 | H4 | Read-only Phase E compliance context on commerce detail | #47 | Merged | `606c5a5301605e05ee71e470cabaf129ec28e589` |
 | H5 | Read-only Phase C evidence-library context on commerce detail (restores `evidenceAnchorIds` through the H1/H2 boundary; resolves `EvidenceAnchor → EvidenceRevision → EvidenceSource`; pointer-based current-revision rule; `rawContent` never rendered) | #48 | Merged | `4b5ff6abc13789d4d06bb4b50d42615290becf32` |
+| Phase F prerequisite correction | Operational-only recommendation current-state derivation (`canonical_recommendations` had no incidental production-only protection, unlike compliance) | #49 | Merged | `372ee23c50faf1bc288148dc51806ccae3e92f35` |
+| H6 | Read-only Phase F recommendation + §18 `SelectionTrace` context on commerce detail (per-kind current-recommendation resolution across all 7 kinds; never the kind-omitted form; per-kind failure isolation) | #50 | Merged | `905d658f5996da7b999d070e7ac25b69825e92eb` |
 
 All commerce capabilities remain `false` (`approve`, `reject`, `targetedRegenerate`, `correctionException`, `legacyEdit`). Phase H remains read-only.
 
@@ -36,9 +38,8 @@ All commerce capabilities remain `false` (`approve`, `reject`, `targetedRegenera
 
 The following context surfaces are genuine remaining Phase H read-only gaps. **They are not yet designed** — each needs its own design inventory before any implementation:
 
-- **Phase D vision-analysis context** — surfacing vision-provider inference results as read-only context.
-- **Phase F recommendation and `SelectionTrace` context** — surfacing recommendation records and their §18 selection traces read-only. **Proposed next work is the H6 design inventory for this gap** (design only, not implementation).
-- **Phase G policy / learned-rule context** — surfacing applicable policies and active learned rules read-only.
+- **Phase D vision-analysis context** — surfacing vision-provider inference results as read-only context. **Proposed next work is the H7 design inventory for this gap** (design only, not implementation).
+- **Phase G policy / learned-rule context** — surfacing applicable policies and active learned rules read-only. Note: `STATUS.md` records Phase G Slice 5 (RBAC enforcement, §15 role matrix) as not yet started as of the last check — worth re-verifying before this gap's design, since surfacing "applicable policies" read-only may reasonably wait until RBAC enforcement is confirmed complete.
 
 ## Explicitly excluded from Phase H
 
