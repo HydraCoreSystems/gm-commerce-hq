@@ -1,6 +1,6 @@
 # GM Commerce Coordinator Handoff
 
-_Current as of 2026-08-04 after Phase F Slice 3 merged._
+_Current as of 2026-08-07 after Phase H Slice 4 merged (app `main` `606c5a5`). For the current state snapshot see `handoffs/2026-08-07-phase-h-status-and-claude-handoff.md` and `STATUS.md`; this file defines the coordinator's standing operating responsibilities and is not a substitute for live GitHub state._
 
 ## Purpose
 
