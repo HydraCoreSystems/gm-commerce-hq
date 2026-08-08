@@ -89,6 +89,7 @@ Supabase project: `wcrcllhvgbhykbonopzx` (separate co-owner account).
 ## Active Work
 
 - **Phase H is COMPLETE.** H1–H8 all merged (`main` at `c65b0232d834c200195b38ce992d1e42272954d1`, PR #53). All five context surfaces named in Phase H's purpose — compliance, evidence, recommendations, vision, policy/learned-rules — are live read-only on the commerce detail page. One honestly-documented residual gap remains (genus/category/marketplace-scoped policies/rules — no data model for it exists yet; see `phase-h-slice-plan.md`'s "Known residual gap" section), not a missed requirement. No further Phase H slices are proposed.
+- **CRITICAL FINDING, read before doing anything else: the canonical model has no live population path.** The real, working, production pipeline (GMCOM-001–012: Skrybix or Product-SKU-Generator selection → SKU-named photo folder → human photo confirmation → AI listing generation → Shopify publish) writes only into legacy tables (`products`, `listing_packages`, `photo_sets`, `commerce_details`). Nothing bridges that into the canonical model (`canonical_product_concepts`, `canonical_skus`, `canonical_commerce_packages`, etc.) that Phase B–H were built around — confirmed by code search (zero non-framework writers to those tables) and by `DECISIONS.md`'s own mention of the un-built "GMCOM-011-to-canonical bridge." Practical effect: Phase H's entire review surface likely has nothing real to show in production today. Full detail, and a proposed (not yet authorized) "Phase I: Legacy-to-Canonical Bridge" smallest-first-slice, in `handoffs/2026-08-08-phase-h-complete-and-legacy-canonical-bridge-handoff.md` — read that file before scoping any next work.
 - **GitHub Issues**: Several tasks lack formal Issues. GitHub API access has been intermittent.
 - **Shopify CSV export**: Phil to provide a current export for GMCOM-014 real-export validation.
 
@@ -99,7 +100,7 @@ Supabase project: `wcrcllhvgbhykbonopzx` (separate co-owner account).
 
 ## Next Phase
 
-**Phase H is complete; no next phase is authorized yet.** Per `PRODUCT_RESET_2026-08-03.md` §23, the phases after H are unlettered "Later phases" — broader proactive portfolio recommendations, Skrybix contract expansion (§16), Etsy publishing (built on the now-proven `CommercePackage`/adapter boundary, §7), and public editorial publishing (§17–§18) — each explicitly gated on its own stated prerequisites, not simply "next" by document order. This needs Phil's product decision on which one to scope next, not an assumed continuation.
+**Not yet authorized.** Phase H is complete, but the priority next step is almost certainly the legacy-to-canonical bridge (see the critical finding above and the linked handoff), not any of PRODUCT_RESET §23's "Later phases" (broader recommendations, Skrybix contract expansion, Etsy, public editorial publishing) — those all assume real `CommercePackage`s exist, which today they likely don't. The bridge itself needs a proper multi-slice plan (like every prior phase got) before implementation starts, and Phil's explicit authorization on that plan.
 
 ## AI Capacity
 
