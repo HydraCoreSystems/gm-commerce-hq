@@ -99,3 +99,20 @@ Read `phase-i-slice-plan.md`. Do not implement I1 until Phil issues the separate
 - Post-merge `main` CI for `2c26b61` was still queued at the time of this update (Copilot workflow completed success); verify the CI workflow independently.
 
 The authoritative current state is `STATUS.md` and `phase-i-slice-plan.md` (both updated for I1's delivery). This addendum exists to correct the outdated "no implementation begun" current-state fact while preserving the historical record above.
+
+## 9. SUPERSEDING ADDENDUM (2026-08-08) — I2 delivered and merged
+
+**Current-state correction:** §8's "I2 has not begun and remains pending design and owner authorization" is superseded. **I2 was implemented and merged.**
+
+- **I2 merged via PR #55** (`HydraCoreSystems/gm-commerce`): "Phase I Slice 2: ready_for_ai integration + durable bridge jobs".
+- **Merge SHA:** `bef5a5d94aeab4f4b506eb116398a542c5f04886` (`gm-commerce/main`).
+- What shipped (verified against the merged migration `20260808120000_phase_i_slice2_ready_for_ai_bridge_jobs.sql` and `app/actions.ts`):
+  - `canonical_legacy_bridge_jobs` — a SEPARATE durable queue (per `(environment, legacy_table, legacy_key)`, statuses `pending/processing/done/failed/mismatch/retry/dead_letter`, lease columns, `attempt_count`/`max_attempts`, `available_at` backoff, `correlation_id`, `error_context`) + immutable `canonical_legacy_bridge_job_attempts` ledger.
+  - `gmcom_mark_product_ready_for_ai` — guarded transition + enqueue in ONE transaction (enqueue failure rolls back the transition; later canonical failure never reverts it; no-op replay) + idempotent `gmcom_enqueue_legacy_bridge_job` + `gmcom_claim_legacy_bridge_job` (`FOR UPDATE SKIP LOCKED`, 300s lease, lease-expiry recovery, retry/dead-letter) + `gmcom_finish_legacy_bridge_job` (lease-token validated, 60s→1h exponential backoff).
+  - **Every real `ready_for_ai` transition now atomically enqueues a durable identity-bridge job.** Request-triggered processing (best-effort after the transition, failure-isolated; plus a bounded manual drain server action `drainBridgeJobs`).
+  - **Manual-drain authorization:** `drainBridgeJobs` is owner/co-owner-only via `lib/auth` `resolvePrincipal()` + `requireRole(principal, "co_owner")`; staff/service rejected (no new permission invented); the `/` button is hidden unless the trusted configured principal is authorized; the server-action check is the mandatory boundary.
+- **I2 creates ProductConcept/SKU/SourceRecord identities only** — no CommercePackages, Claims, photos/evidence, or Phase H queue entries.
+- Post-merge `main` CI for `bef5a5d` independently verified green: CI workflow run `31262417220` = success; Copilot `31262419177` = success.
+- **I3 (existing identity backfill) has not begun** and remains pending design and owner authorization; a read-only I3 design inventory is in progress.
+
+The authoritative current state is `STATUS.md` and `phase-i-slice-plan.md` (both updated for I2's delivery).
