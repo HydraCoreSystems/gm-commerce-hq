@@ -1,22 +1,42 @@
 # Current Project Status
 
-_Last updated: 2026-08-05_
+_Last updated: 2026-08-07_
 
-## Phase G — Owner-Editable Policies and Learned-Rule Activation (planned)
+## Phase H — Read-Only Completed-Review Refinement (current)
 
-Phase G enables Phil to edit policies and confirm Phase F recommendations into standing learned rules. The authoritative slice plan is `phase-g-slice-plan.md` (this repo).
+Phase H surfaces what Phases B–G actually produced as read-only context in the review shell. The authoritative slice plan is `phase-h-slice-plan.md` (this repo).
 
-### Planned
+`gm-commerce/main` is at `606c5a5301605e05ee71e470cabaf129ec28e589`.
 
-| Slice | Scope | Status |
-|---|---|---|
-| G1 | Policy management — create, query, evaluate policies | #30 | Merged | `4eac37` |
-| G2 | Owner confirmation flow — recommendation → owner decision | #31 | Merged | `a24ad83` |
-| G3 | Correction capture and scope inference | #32 | Merged | `e5c708b` |
-| G4 | Rule activation engine — learned rules table, activate/revoke/query | — | Brief ready, awaiting authorization | `b0d5a03` |
+| Slice | Scope | PR | Status | Merge |
+|---|---|---|---|---|
+| H1 | Canonical commerce → read-only `ReviewPackage` adapter | #42 | Merged | `f44ceb2` |
+| H2 | Canonical loader + precedence/contradiction preservation + detail routing | #43 | Merged | `9540a1a` |
+| H3 | Operational-only commerce queue discovery | #44 | Merged | `d3cba35` |
+| Phase E prerequisite correction | Operational-only compliance current-state/gate derivation | #45 | Merged | `1472660` |
+| H4 | Read-only Phase E compliance context on commerce detail | #47 | Merged | `606c5a5` |
+
+All commerce capabilities remain `false`; Phase H is strictly read-only.
+
+**Phase H remains in progress** because the C/D/F/G read-only context is not yet surfaced: Phase C evidence-library context, Phase D vision-analysis context, Phase F recommendation + `SelectionTrace` context, and Phase G policy/learned-rule context are all genuine remaining gaps (not yet designed — see `phase-h-slice-plan.md`).
+
+**Next proposed work: H5 design inventory for Phase C evidence-library context** — design only, not implementation.
+
+**Open issue:** [#46 — Reconcile Phase E compliance gate functions and approval trigger into schema.sql](https://github.com/HydraCoreSystems/gm-commerce/issues/46) (open). Ordered migrations remain the deployment source of truth; this does not block Phase H.
+
+## Phase G — Owner-Editable Policies and Learned-Rule Activation (complete; superseded "next task" guidance is historical)
+
+Phase G enabled editing policies and confirming Phase F recommendations into standing learned rules. The authoritative slice plan is `phase-g-slice-plan.md` (this repo).
+
+| Slice | Scope | PR | Status |
+|---|---|---|---|
+| G1 | Policy management — create, query, evaluate policies | #30 | Merged |
+| G2 | Owner confirmation flow — recommendation → owner decision | #31 | Merged |
+| G3 | Correction capture and scope inference | #32 | Merged |
+| G4 | Rule activation engine — learned rules table, activate/revoke/query | #33 | Merged |
 | G5 | RBAC enforcement — §15 role matrix at Repository command layer | Not started |
 
-`gm-commerce/main` is at `4eac37`. All Phase G infrastructure prerequisites (tables, contract interface) exist from Phases B-D.
+> Historical note: the earlier "Next Phase: Phase G" guidance is superseded. Phase G is complete through G4; G5 (RBAC enforcement) remains a later-phase item. The current next phase is Phase H (above).
 
 ## Phase F (complete)
 
@@ -36,7 +56,7 @@ See `phase-f-slice-plan.md` for per-slice scope, acceptance criteria, and exclus
 
 ## Product Reset
 
-`PRODUCT_RESET_2026-08-03.md` is at Revision 3. Copilot's re-review returned `REQUIRES REVISION 3 AND RE-REVIEW`; Revision 3 incorporated the corrections; Codex subsequently returned `APPROVE AFTER DOCUMENTED CORRECTIONS`. Per §24, the review step is complete. The reset does not block Phase G.
+`PRODUCT_RESET_2026-08-03.md` is at Revision 3. Copilot's re-review returned `REQUIRES REVISION 3 AND RE-REVIEW`; Revision 3 incorporated the corrections; Codex subsequently returned `APPROVE AFTER DOCUMENTED CORRECTIONS`. Per §24, the review step is complete.
 
 ## Schema State
 
@@ -44,6 +64,7 @@ See `phase-f-slice-plan.md` for per-slice scope, acceptance criteria, and exclus
 - `20260803000000_commerce_field_ownership.sql` (price/`content_provenance`) was deliberately retired as never-applied.
 - CI schema-from-empty passes from committed migrations.
 - `HY-LOB01-C04` test data verified absent from the live database (2026-08-05).
+- **Issue #46 open:** consolidated `schema.sql` omits the Phase E compliance gate functions/trigger (`gmcom_compliance_check_is_stale`, `gmcom_current_compliance_check_status`, `gmcom_compliance_gate_outcome`, `gmcom_compliance_checks_with_status`, `gmcom_guard_commerce_package_approval` + trigger and dependencies). Ordered migrations are the deployment source of truth; reconciliation is tracked, not blocking.
 
 ## Completed (pre-Phase F)
 
@@ -59,7 +80,7 @@ See `phase-f-slice-plan.md` for per-slice scope, acceptance criteria, and exclus
 - **GMCOM-003** — Skrybix commerce selection handoff, production-deployed.
 - **GMCOM-002** — GM Commerce application foundation.
 - **GMCOM-001** — Product SKU Generator baseline.
-- **Phase C Slice 5** — Freshness, Revalidation, and Promotion Gates (PR #14, merged).
+- **Phase C Slice 5** — Freshness, Revalidation, and Promotion Gates (PR #14, merged). _Historical — superseded by later phases; retained as a completed record._
 - **Phase D Slice 1** — Vision-provider contract and authorized-media-access boundary (built, on branch `agent/phase-d-slice-1-vision-provider`, not yet merged).
 - **Phase E Slices 1–4** — ComplianceCheck, deterministic validation, fail-closed gate, review surface (PRs #19–#22, all merged).
 
@@ -67,7 +88,7 @@ Supabase project: `wcrcllhvgbhykbonopzx` (separate co-owner account).
 
 ## Active Work
 
-- **Pre-Phase G audit**: Phase F comprehensive survey complete (see handoff). All 7 services consistent in trust boundary, precedence, confidence math, compliance gate interaction, and §18 trace contract. No cross-service dependencies, no TODOs, no commented-out code.
+- **Phase H**: H1–H4 merged. Phase H remains in progress (C/D/F/G read-only context not yet surfaced). Next proposed work is the **H5 design inventory for Phase C evidence-library context** (design only).
 - **GitHub Issues**: Several tasks lack formal Issues. GitHub API access has been intermittent.
 - **Shopify CSV export**: Phil to provide a current export for GMCOM-014 real-export validation.
 
@@ -78,15 +99,15 @@ Supabase project: `wcrcllhvgbhykbonopzx` (separate co-owner account).
 
 ## Next Phase
 
-**Phase G** — owner-editable policies and learned-rule activation, per `PRODUCT_RESET_2026-08-03.md` §23. No briefs exist yet.
+**Phase H — H5 design inventory for Phase C evidence-library context** (design only, not implementation), per `phase-h-slice-plan.md`. The H5 design must be reviewed and approved before any coding.
 
 ## AI Capacity
 
 | Contributor | Role | Capacity | Current assignment |
 |---|---|---|---|
-| ChatGPT | Project manager / coordinator | Available | Phase G planning |
-| Claude | Primary implementation | Available | Phase G, awaiting slice assignment |
-| GitHub Copilot | Implementation contributor | Quota-limited | Phase F slices 3-7 + handoffs |
-| Phil | Product owner | Available as schedule permits | Phase G authorization |
+| ChatGPT | Project manager / coordinator | Available | Phase H status + coordinator handoff |
+| Claude | Primary implementation | Available | Phase H review; H5 design inventory (next) |
+| GitHub Copilot | Implementation contributor | Quota-limited | Phase H review assistance |
+| Phil | Product owner | Available as schedule permits | Phase H authorization |
 
 Capacity status should be updated whenever a provider limit is reached or resets.
