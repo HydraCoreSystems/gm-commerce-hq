@@ -116,3 +116,22 @@ The authoritative current state is `STATUS.md` and `phase-i-slice-plan.md` (both
 - **I3 (existing identity backfill) has not begun** and remains pending design and owner authorization; a read-only I3 design inventory is in progress.
 
 The authoritative current state is `STATUS.md` and `phase-i-slice-plan.md` (both updated for I2's delivery).
+
+## 10. SUPERSEDING ADDENDUM (2026-08-08) — I3 delivered and merged
+
+**Current-state correction:** §9's "I3 (existing identity backfill) has not begun and remains pending design and owner authorization" is superseded. **I3 was implemented and merged.**
+
+- **I3 merged via PR #56** (`HydraCoreSystems/gm-commerce`): "Phase I Slice 3: existing identity backfill".
+- **Merge SHA:** `285a2a01d229d09597028c332473f5e19cfc1eba` (`gm-commerce/main`).
+- What shipped (verified against the merged migration `20260808150000_phase_i_slice3_identity_backfill.sql`, `lib/canonical/bridge/backfill.ts`, `app/actions.ts`, `app/page.tsx`):
+  - **Existing eligible legacy products can now be backfilled into canonical ProductConcept/SKU/SourceRecord identity** through a required **dry-run → single-use real-run** workflow (an exact completed `dry_run` authorizes at most one real run; DB-enforced by `source_dry_run_id` NULL-safe CHECK + composite FK for the same environment + guard trigger + partial unique index; **no freshness rule** — a completed dry run has no expiry; the real run uses a new run id and re-evaluates current DB state).
+  - Explicit four-status eligibility (`ready_for_ai`/`generating`/`review`/`published`), fail-closed for `intake`/`archived`/unknown.
+  - Durable `canonical_legacy_backfill_runs` + immutable per-run `canonical_legacy_backfill_row_outcomes` (run-scoped unique, append-only trigger, no global uniqueness/upserts; counters increment only on real inserts).
+  - Run identity/source immutability + a strict run state machine (INSERT must be running with no completed_at/cursor/counters; running/failed have completed_at NULL, completed has completed_at SET; a failed run accepts no outcomes until explicitly resumed; completed is terminal; forged completed runs rejected).
+  - `record_outcome`/`finish_run` serialize via `FOR UPDATE` (genuine two-session race proven).
+  - Keyset batching + per-row persisted cursor + resumability; owner/co-owner authorization (`runLegacyBackfillDryRun` / `promoteLegacyBackfill(dryRunId)`); UI shows promote buttons only for unconsumed completed dry runs.
+- **Backfill is identity-only** — no CommercePackages, Claims, photo/evidence records, Phase H queue entries, publishing changes, or later Phase I work were created.
+- Post-merge `main` CI for `285a2a0` independently verified green: CI workflow run `31281957101` = success.
+- **I1, I2, and I3 are now all delivered and merged** (PR #54 `2c26b61`, PR #55 `bef5a5d`, PR #56 `285a2a0`). The identity backbone is complete. **The proposed next slice (I4: approved photo sets → canonical PhotoAsset, attached assets only) is a design recommendation only and is NOT authorized** — grounded in a read-only inventory of the merged code at `285a2a0`, and gated on seven owner decisions recorded in `phase-i-slice-plan.md` (photos-as-attached-assets; original-photo vs derivative identity unit; derivative path/metadata representation; canonical PhotoAsset `owner_approval_state='pending'` with legacy approval as source of truth; stable `storage_ref`; **durable per-photo bridge mapping via additive `legacy_table` CHECK widening**; ongoing approval-event integration before backfill — recommended, not authorized). The inventory establishes: `photo_sets.status='approved'` is the truthful approval event (not `products.photos_confirmed_at`); photos are attached/commerce assets, not Claims or Evidence; `canonical_photo_assets` has no `status`/`approved_at` and cannot truthfully carry approval.
+
+The authoritative current state is `STATUS.md` and `phase-i-slice-plan.md` (both updated for I3's delivery).
