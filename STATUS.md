@@ -88,7 +88,7 @@ Supabase project: `wcrcllhvgbhykbonopzx` (separate co-owner account).
 
 ## Active Work
 
-- **Phase H**: H1–H7 merged (`main` at `7f5a153b3e23fccece0a87e39b3949288132210a`, PR #51). Phase H remains in progress (only Phase G policy/learned-rule context not yet surfaced — the last documented gap). Re-verify Phase G Slice 5 (RBAC) status before designing that gap.
+- **Phase H**: H1–H7 merged (`main` at `7f5a153b3e23fccece0a87e39b3949288132210a`, PR #51). Phase H remains in progress (only Phase G policy/learned-rule context not yet surfaced — the last documented gap). **Correction: Phase G Slice 5 (RBAC) is confirmed merged** (PR #34, commit `688f060`, "final Phase G slice" — verified as an ancestor of current `main`). The earlier "not started" note in this file was stale, not current fact. Phase G is fully complete; H8 is unblocked.
 - **GitHub Issues**: Several tasks lack formal Issues. GitHub API access has been intermittent.
 - **Shopify CSV export**: Phil to provide a current export for GMCOM-014 real-export validation.
 
@@ -99,7 +99,7 @@ Supabase project: `wcrcllhvgbhykbonopzx` (separate co-owner account).
 
 ## Next Phase
 
-**Phase H — verify Phase G Slice 5 (RBAC) status, then the H8 design inventory for Phase G policy/learned-rule context** (design only, not implementation) if RBAC enforcement is confirmed complete, per `phase-h-slice-plan.md`. This is the last remaining Phase H gap.
+**Phase H — H8 design inventory for Phase G policy/learned-rule context** (design only, not implementation), per `phase-h-slice-plan.md`. Phase G Slice 5 (RBAC) is confirmed merged, so this is unblocked. This is the last remaining Phase H gap.
 
 ## AI Capacity
 
