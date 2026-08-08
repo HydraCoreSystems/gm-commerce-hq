@@ -88,7 +88,7 @@ Supabase project: `wcrcllhvgbhykbonopzx` (separate co-owner account).
 
 ## Active Work
 
-- **Phase H**: H1–H4 merged. Phase H remains in progress (C/D/F/G read-only context not yet surfaced). Next proposed work is the **H5 design inventory for Phase C evidence-library context** (design only).
+- **Phase H**: H1–H5 merged (`main` at `4b5ff6abc13789d4d06bb4b50d42615290becf32`, PR #48). Phase H remains in progress (D/F/G read-only context not yet surfaced). Next proposed work is the **H6 design inventory for Phase F recommendation + `SelectionTrace` context** (design only).
 - **GitHub Issues**: Several tasks lack formal Issues. GitHub API access has been intermittent.
 - **Shopify CSV export**: Phil to provide a current export for GMCOM-014 real-export validation.
 
@@ -99,14 +99,14 @@ Supabase project: `wcrcllhvgbhykbonopzx` (separate co-owner account).
 
 ## Next Phase
 
-**Phase H — H5 design inventory for Phase C evidence-library context** (design only, not implementation), per `phase-h-slice-plan.md`. The H5 design must be reviewed and approved before any coding.
+**Phase H — H6 design inventory for Phase F recommendation + `SelectionTrace` context** (design only, not implementation), per `phase-h-slice-plan.md`. The H6 design must be reviewed and approved before any coding.
 
 ## AI Capacity
 
 | Contributor | Role | Capacity | Current assignment |
 |---|---|---|---|
 | ChatGPT | Project manager / coordinator | Available | Phase H status + coordinator handoff |
-| Claude | Primary implementation | Available | Phase H review; H5 design inventory (next) |
+| Claude | Primary coordination + implementation + review | Available | H5 merged (PR #48); H6 design inventory (next) |
 | GitHub Copilot | Implementation contributor | Quota-limited | Phase H review assistance |
 | Phil | Product owner | Available as schedule permits | Phase H authorization |
 

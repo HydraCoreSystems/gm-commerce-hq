@@ -1,6 +1,6 @@
 # Phase H Slice Plan — Read-Only Completed-Review Refinement
 
-_Authoritative plan per `PRODUCT_RESET_2026-08-03.md` §23 Phase H ("completed-review refinement"). Last updated: 2026-08-07._
+_Authoritative plan per `PRODUCT_RESET_2026-08-03.md` §23 Phase H ("completed-review refinement"). Last updated: 2026-08-08._
 
 ## Purpose
 
@@ -17,9 +17,9 @@ Phase H depends on:
 
 Each slice depends strictly on the previous slice's merge into `main`.
 
-## Current state (2026-08-07)
+## Current state (2026-08-08)
 
-Application `HydraCoreSystems/gm-commerce` `main` is at `606c5a5301605e05ee71e470cabaf129ec28e589` (merge of PR #47).
+Application `HydraCoreSystems/gm-commerce` `main` is at `4b5ff6abc13789d4d06bb4b50d42615290becf32` (merge of PR #48).
 
 | Slice | Scope | PR | Status | Merge |
 |---|---|---|---|---|
@@ -28,6 +28,7 @@ Application `HydraCoreSystems/gm-commerce` `main` is at `606c5a5301605e05ee71e47
 | H3 | Operational-only commerce queue discovery | #44 | Merged | `d3cba3547ebdbabc86424f53e7c2fa1e3693b9e1` |
 | Phase E prerequisite correction | Operational-only compliance current-state/gate derivation | #45 | Merged | `1472660232d8475229cd1da07a2c9105d55ff82c` |
 | H4 | Read-only Phase E compliance context on commerce detail | #47 | Merged | `606c5a5301605e05ee71e470cabaf129ec28e589` |
+| H5 | Read-only Phase C evidence-library context on commerce detail (restores `evidenceAnchorIds` through the H1/H2 boundary; resolves `EvidenceAnchor → EvidenceRevision → EvidenceSource`; pointer-based current-revision rule; `rawContent` never rendered) | #48 | Merged | `4b5ff6abc13789d4d06bb4b50d42615290becf32` |
 
 All commerce capabilities remain `false` (`approve`, `reject`, `targetedRegenerate`, `correctionException`, `legacyEdit`). Phase H remains read-only.
 
@@ -35,9 +36,8 @@ All commerce capabilities remain `false` (`approve`, `reject`, `targetedRegenera
 
 The following context surfaces are genuine remaining Phase H read-only gaps. **They are not yet designed** — each needs its own design inventory before any implementation:
 
-- **Phase C evidence-library context** — surfacing evidence sources/revisions/anchors as read-only context on the commerce detail page. **Next proposed work is the H5 design inventory for this gap** (design only, not implementation).
 - **Phase D vision-analysis context** — surfacing vision-provider inference results as read-only context.
-- **Phase F recommendation and `SelectionTrace` context** — surfacing recommendation records and their §18 selection traces read-only.
+- **Phase F recommendation and `SelectionTrace` context** — surfacing recommendation records and their §18 selection traces read-only. **Proposed next work is the H6 design inventory for this gap** (design only, not implementation).
 - **Phase G policy / learned-rule context** — surfacing applicable policies and active learned rules read-only.
 
 ## Explicitly excluded from Phase H
@@ -48,7 +48,7 @@ The following context surfaces are genuine remaining Phase H read-only gaps. **T
 - Invented precedence/current-version rules (canonical `queryApplicableClaims` / `orderByPrecedence` are the only precedence authorities).
 - Unrelated pagination work (ordered pagination of the commerce queue is a future shared-repository concern, tracked separately from Phase H).
 
-## Architectural invariants (all H1–H4 slices)
+## Architectural invariants (all H1–H5 slices)
 
 - **Environment-bound repositories** — every canonical/compliance read goes through an environment-bound repository (`createCanonicalEntityRepository`, `createClaimEvidenceRepository`, `createComplianceCheckRepository`); no request-scoped environment widening.
 - **Operational-only discovery and compliance derivation** — the commerce queue discovers only `record_purpose='operational'` packages, and compliance current-state/gate derivation considers only operational checks.
