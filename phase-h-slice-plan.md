@@ -2,9 +2,13 @@
 
 _Authoritative plan per `PRODUCT_RESET_2026-08-03.md` §23 Phase H ("completed-review refinement"). Last updated: 2026-08-08._
 
+## STATUS: COMPLETE
+
+Phase H's full documented scope — deepening the Phase B0 review shell with everything Phases B–G produced, read-only — is delivered as of PR #53. All five context surfaces (compliance, evidence, recommendations, vision, policy/rules) are live on the commerce detail page. See "Current state" below for the full slice table and "Known residual gap" for the one honestly-documented exclusion that remains (not a missed Phase H requirement — see that section).
+
 ## Purpose
 
-Phase H deepens the Phase B0 review shell with everything Phases B–G actually produced — **read-only**. It surfaces canonical commerce packages and their real supporting context (compliance, and eventually evidence/vision/recommendation/policy context) in the review UI without adding any mutation capability. Every commerce capability remains `false`; Phase H is strictly read-only.
+Phase H deepens the Phase B0 review shell with everything Phases B–G actually produced — **read-only**. It surfaces canonical commerce packages and their real supporting context (compliance, evidence, recommendations, vision, and policy/learned-rule context) in the review UI without adding any mutation capability. Every commerce capability remains `false`; Phase H is strictly read-only.
 
 ## Dependency
 
@@ -19,7 +23,7 @@ Each slice depends strictly on the previous slice's merge into `main`.
 
 ## Current state (2026-08-08)
 
-Application `HydraCoreSystems/gm-commerce` `main` is at `23c4e39f450d779605b221b3466af127d235a29c` (merge of PR #52).
+Application `HydraCoreSystems/gm-commerce` `main` is at `c65b0232d834c200195b38ce992d1e42272954d1` (merge of PR #53).
 
 | Slice | Scope | PR | Status | Merge |
 |---|---|---|---|---|
@@ -33,14 +37,17 @@ Application `HydraCoreSystems/gm-commerce` `main` is at `23c4e39f450d779605b221b
 | H6 | Read-only Phase F recommendation + §18 `SelectionTrace` context on commerce detail (per-kind current-recommendation resolution across all 7 kinds; never the kind-omitted form; per-kind failure isolation) | #50 | Merged | `905d658f5996da7b999d070e7ac25b69825e92eb` |
 | H7 | Read-only Phase D vision-analysis context on commerce detail (new `listVisionRequestsBySubject` read method, `record_purpose='operational'` filtered from the start; closed 4-type inference union; non-`completed` outcomes render a lighter note, never a fabricated result) | #51 | Merged | `7f5a153b3e23fccece0a87e39b3949288132210a` |
 | Phase G prerequisite correction | Operational-only policy/rule read paths (`PolicyRepositoryImpl.fetchPolicies`, `RuleEngineImpl.queryActiveRules`) — same defect class as the Phase E/F corrections, and the same worst-case category as recommendations (`canonical_policies`/`canonical_learned_rules` have no production-forces-operational constraint) | #52 | Merged | `23c4e39f450d779605b221b3466af127d235a29c` |
+| H8 | Read-only Phase G policy + active learned-rule context on commerce detail (policies: single `queryApplicablePolicies` entity-scope call, global policies match automatically; rules: three exact-scope `queryActiveRules` calls — `SKU`/`all_products`/`all_plants` — merged and de-duplicated by id, since rule-scope matching has no automatic broadening) | #53 | Merged | `c65b0232d834c200195b38ce992d1e42272954d1` |
 
 All commerce capabilities remain `false` (`approve`, `reject`, `targetedRegenerate`, `correctionException`, `legacyEdit`). Phase H remains read-only.
 
-## Remaining Phase H read-only gaps (genuine, NOT yet designed)
+## Phase H documented scope: fully delivered
 
-The following context surfaces are genuine remaining Phase H read-only gaps. **They are not yet designed** — each needs its own design inventory before any implementation:
+All five context surfaces named in Phase H's purpose (compliance, evidence, recommendations, vision, policy/rules) are merged as of H8/PR #53. No further Phase H slices are proposed. Any future H9+ work would require a new, separately-justified gap — not a continuation of slice numbering for its own sake.
 
-- **Phase G policy / learned-rule context** — surfacing applicable policies and active learned rules read-only. This is the last remaining documented Phase H gap, and it is now unblocked: Phase G Slice 5 (RBAC) is confirmed merged (PR #34), and the prerequisite operational-purpose correction for policy/rule reads is merged (PR #52). **Proposed next work is the H8 design inventory for this gap** (design only, not implementation).
+## Known residual gap (not a missed Phase H requirement)
+
+Genus-, category-, species-, marketplace-, and ProductConcept-scoped policies and learned rules are **not surfaced** by H8. `canonical_skus` and `canonical_product_concepts` have no genus or category columns anywhere in the schema — there is no data source to resolve them from a commerce package today, and H8 deliberately did not guess or infer one. Closing this requires a genus/category data-model addition, which is a separate, future architectural decision — not a Phase H implementation gap. Tracked here for visibility, same spirit as Issue #46 below.
 
 ## Explicitly excluded from Phase H
 
@@ -50,7 +57,7 @@ The following context surfaces are genuine remaining Phase H read-only gaps. **T
 - Invented precedence/current-version rules (canonical `queryApplicableClaims` / `orderByPrecedence` are the only precedence authorities).
 - Unrelated pagination work (ordered pagination of the commerce queue is a future shared-repository concern, tracked separately from Phase H).
 
-## Architectural invariants (all H1–H5 slices)
+## Architectural invariants (all H1–H8 slices)
 
 - **Environment-bound repositories** — every canonical/compliance read goes through an environment-bound repository (`createCanonicalEntityRepository`, `createClaimEvidenceRepository`, `createComplianceCheckRepository`); no request-scoped environment widening.
 - **Operational-only discovery and compliance derivation** — the commerce queue discovers only `record_purpose='operational'` packages, and compliance current-state/gate derivation considers only operational checks.

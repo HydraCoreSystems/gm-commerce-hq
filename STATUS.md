@@ -88,7 +88,7 @@ Supabase project: `wcrcllhvgbhykbonopzx` (separate co-owner account).
 
 ## Active Work
 
-- **Phase H**: H1–H7 merged, plus the Phase G policy/rule operational-purpose prerequisite correction (`main` at `23c4e39f450d779605b221b3466af127d235a29c`, PR #52). Phase H remains in progress (only Phase G policy/learned-rule context not yet surfaced — the last documented gap, now fully unblocked). Phase G Slice 5 (RBAC) is confirmed merged (PR #34, commit `688f060`, "final Phase G slice"). Next proposed work is the **H8 design inventory for Phase G policy/learned-rule context** (design only).
+- **Phase H is COMPLETE.** H1–H8 all merged (`main` at `c65b0232d834c200195b38ce992d1e42272954d1`, PR #53). All five context surfaces named in Phase H's purpose — compliance, evidence, recommendations, vision, policy/learned-rules — are live read-only on the commerce detail page. One honestly-documented residual gap remains (genus/category/marketplace-scoped policies/rules — no data model for it exists yet; see `phase-h-slice-plan.md`'s "Known residual gap" section), not a missed requirement. No further Phase H slices are proposed.
 - **GitHub Issues**: Several tasks lack formal Issues. GitHub API access has been intermittent.
 - **Shopify CSV export**: Phil to provide a current export for GMCOM-014 real-export validation.
 
@@ -99,14 +99,14 @@ Supabase project: `wcrcllhvgbhykbonopzx` (separate co-owner account).
 
 ## Next Phase
 
-**Phase H — H8 design inventory for Phase G policy/learned-rule context** (design only, not implementation), per `phase-h-slice-plan.md`. Phase G Slice 5 (RBAC) is confirmed merged, so this is unblocked. This is the last remaining Phase H gap.
+**Phase H is complete; no next phase is authorized yet.** Per `PRODUCT_RESET_2026-08-03.md` §23, the phases after H are unlettered "Later phases" — broader proactive portfolio recommendations, Skrybix contract expansion (§16), Etsy publishing (built on the now-proven `CommercePackage`/adapter boundary, §7), and public editorial publishing (§17–§18) — each explicitly gated on its own stated prerequisites, not simply "next" by document order. This needs Phil's product decision on which one to scope next, not an assumed continuation.
 
 ## AI Capacity
 
 | Contributor | Role | Capacity | Current assignment |
 |---|---|---|---|
 | ChatGPT | Project manager / coordinator | Available | Phase H status + coordinator handoff |
-| Claude | Primary coordination + implementation + review | Available | Phase G prerequisite fix merged (PR #52); H8 design inventory (next) |
+| Claude | Primary coordination + implementation + review | Available | Phase H complete (H1–H8, PR #53); awaiting Phil's next-phase scoping decision |
 | GitHub Copilot | Implementation contributor | Quota-limited | Phase H review assistance |
 | Phil | Product owner | Available as schedule permits | Phase H authorization |
 
