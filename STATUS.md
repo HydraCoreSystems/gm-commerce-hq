@@ -2,27 +2,25 @@
 
 _Last updated: 2026-08-08_
 
-## Phase I — Legacy-to-Canonical Bridge (I1 delivered and merged; I2 pending design/owner authorization)
+## Phase I — Legacy-to-Canonical Bridge (I1 and I2 delivered and merged; I3 pending design/owner authorization)
 
 Phase I bridges the real, working production pipeline (GMCOM-001–012) into the canonical model that Phases B–H built around. The authoritative slice plan is `phase-i-slice-plan.md` (this repo).
 
-**Status: I1 delivered and merged via PR #54 (`gm-commerce/main` at `2c26b61`).** I2 (ongoing `ready_for_ai` integration + durable bridge job) has **not begun** and remains pending design and owner authorization. No later slice (I3 backfill, photos, CommercePackage, claims, drift hardening) has begun.
+**Status: I1 and I2 delivered and merged.** I1 via PR #54 (`2c26b61`); **I2 via PR #55 (`gm-commerce/main` at `bef5a5d`)**. I3 (existing identity backfill) has **not begun** and remains pending design and owner authorization. No later slice (photos, CommercePackage, claims, drift hardening) has begun.
 
-`gm-commerce/main` is at `2c26b61dafae3ac79cdb54dced7160adab06a7fd` (merge of PR #54 / I1).
+`gm-commerce/main` is at `bef5a5d94aeab4f4b506eb116398a542c5f04886` (merge of PR #55 / I2).
 
 | Slice | Scope | PR | Status | Merge |
 |---|---|---|---|---|
 | I1 | Bridge foundation + atomic identity RPC (`canonical_legacy_entity_bridge` + `gmcom_bridge_product_identity`) | #54 | Merged | `2c26b61` |
-| I2 | Ongoing `ready_for_ai` integration + durable bridge job | — | Planned — not begun | — |
-| I3 | Existing identity backfill | — | Planned — after I2 | — |
+| I2 | Ongoing `ready_for_ai` integration + durable bridge jobs (`canonical_legacy_bridge_jobs` + `gmcom_mark_product_ready_for_ai`/enqueue/claim/finish) | #55 | Merged | `bef5a5d` |
+| I3 | Existing identity backfill | — | Planned — not begun | — |
 
-I1 delivered the durable, environment-scoped `canonical_legacy_entity_bridge` substrate (`pending`/`processing`/`done`/`failed`/`mismatch`/`retry`/`excluded` statuses, `correlation_id`, `retry_count`, `error_context`) and the atomic `gmcom_bridge_product_identity` RPC that creates ProductConcept → SKU → SourceRecord → mapping in one transaction: operational-only, `owner_approval_state='pending'`, idempotent replay, drift/mismatch fail-visible, concurrent-winner convergence, atomic rollback, service_role-only execute, RLS fail-closed and env-scoped. Genuine two-session concurrency was tested and passed (both simultaneous calls return the same identity set; exactly one identity set and three bridge rows remain). The consolidated `schema.sql` mirror was updated in the same merge.
+I2 delivered: **every real `ready_for_ai` transition now atomically enqueues a durable identity-bridge job** (`gmcom_mark_product_ready_for_ai` transitions `products.status` and enqueues/resolves the job in one transaction; the transition never rolls back on later canonical failure). Request-triggered processing (best-effort after transition + a bounded manual drain), leases (`FOR UPDATE SKIP LOCKED`, 300s, lease-expiry recovery), retries (exponential backoff 60s→1h), dead-lettering, end-to-end correlation continuity, immutable attempt history, and **owner/co-owner-only authorization for the manual drain** (via `lib/auth` `resolvePrincipal`/`requireRole`; staff/service rejected, no new permission invented) are all delivered and live-tested. I2 **creates ProductConcept/SKU/SourceRecord identities only**; it still creates no CommercePackages, Claims, photos/evidence, or Phase H queue entries.
 
-**I1 does not create CommercePackages and does not populate the Phase H queue.** I2 has not begun.
+> Post-merge CI for `bef5a5d` verified green: CI workflow run `31262417220` = success; Copilot workflow `31262419177` = success (independently re-pulled on 2026-08-08).
 
-> Post-merge CI note: at the time of this update the `main` CI workflow for `2c26b61` (run `31258503603`) had not completed (queued); the Copilot workflow (`31258505200`) completed successfully. Verify the CI workflow independently before treating `main` as green.
-
-Owner-approved decisions (2026-08-08, full list in `phase-i-slice-plan.md`): identity creation triggered at `products.status='ready_for_ai'`; a new `canonical_legacy_entity_bridge` table (not a widening of `canonical_legacy_field_bridge`); ProductConcept + SKU + SourceRecord + mapping created atomically by one RPC; legacy never rolls back on bridge failure; a durable bridge job/outbox (`pending/processing/done/failed/mismatch/retry` + `correlation_id` + error context); ongoing production bridging activated before backfill; archived rows initially skipped and recorded as excluded (no invented retention); no AI-content Claims until a defensible SourceCategory/evidence design is approved; **I1 does not populate the Phase H queue** (only a canonical CommercePackage does); CommercePackage timing is a later decision; the bridge architecture is approved as the next phase.
+Owner-approved decisions (2026-08-08, full list in `phase-i-slice-plan.md`): identity creation triggered at `products.status='ready_for_ai'`; a new `canonical_legacy_entity_bridge` table (not a widening of `canonical_legacy_field_bridge`); ProductConcept + SKU + SourceRecord + mapping created atomically by one RPC; legacy never rolls back on bridge failure; a durable bridge job/outbox (`pending/processing/done/failed/mismatch/retry` + `correlation_id` + error context); ongoing production bridging activated before backfill; archived rows initially skipped and recorded as excluded (no invented retention); no AI-content Claims until a defensible SourceCategory/evidence design is approved; **I1/I2 do not populate the Phase H queue** (only a canonical CommercePackage does); CommercePackage timing is a later decision; the bridge architecture is approved as the next phase.
 
 ## Phase H — Read-Only Completed-Review Refinement (complete)
 
@@ -87,6 +85,7 @@ See `phase-f-slice-plan.md` for per-slice scope, acceptance criteria, and exclus
 ## Schema State
 
 - I1 merged (PR #54, `2c26b61`): `canonical_legacy_entity_bridge` table + `gmcom_bridge_product_identity` RPC added, with the consolidated `schema.sql` mirror updated in the same merge (applies clean from empty on PG15; 36 ordered migrations).
+- I2 merged (PR #55, `bef5a5d`): 37th migration adds `canonical_legacy_bridge_jobs` (durable per-`(environment, legacy_table, legacy_key)` job queue with lease/backoff/dead-letter machinery) + immutable `canonical_legacy_bridge_job_attempts` ledger + `gmcom_mark_product_ready_for_ai`/`gmcom_enqueue_legacy_bridge_job`/`gmcom_claim_legacy_bridge_job`/`gmcom_finish_legacy_bridge_job` RPCs; consolidated `schema.sql` mirror updated; live PG15 coverage added to the `phase-b0-slice1-review-shell-live` CI job.
 - Migration gap resolved: `commerce_details` table and `listing_packages.seo_title`/`seo_description` columns have committed DDL at `20260802040000_commerce_readiness.sql`.
 - `20260803000000_commerce_field_ownership.sql` (price/`content_provenance`) was deliberately retired as never-applied.
 - CI schema-from-empty passes from committed migrations.
@@ -115,7 +114,7 @@ Supabase project: `wcrcllhvgbhykbonopzx` (separate co-owner account).
 
 ## Active Work
 
-- **Phase I: I1 delivered and merged (PR #54, `gm-commerce/main` at `2c26b61`).** The authoritative multi-slice plan is `phase-i-slice-plan.md`. I1 established `canonical_legacy_entity_bridge` + the atomic `gmcom_bridge_product_identity` RPC; genuine two-session concurrency was tested and passed. **I2 (ongoing `ready_for_ai` integration + durable bridge job) has not begun** and remains pending design and owner authorization; a read-only I2 design inventory is under way/available for review. I1 creates no CommercePackages and populates nothing in the Phase H queue.
+- **Phase I: I1 and I2 delivered and merged (PR #54 `2c26b61`, PR #55 `bef5a5d`).** The authoritative multi-slice plan is `phase-i-slice-plan.md`. I1 established `canonical_legacy_entity_bridge` + the atomic `gmcom_bridge_product_identity` RPC; I2 wired every real `ready_for_ai` transition to a durable identity-bridge job (request-triggered processing, leases, retries, dead-lettering, correlation continuity, attempt history, owner/co-owner-only manual drain). **I3 (existing identity backfill) has not begun** and remains pending design and owner authorization; a read-only I3 design inventory is in progress and will be available for review. I2 creates ProductConcept/SKU/SourceRecord identities only — no CommercePackages, Claims, photos/evidence, or Phase H queue entries.
 - **Phase H is COMPLETE** (H1–H8 + Phase E/F/G prerequisite corrections, merged at `c65b023` per PR #53). No further Phase H slices are proposed.
 - **GitHub Issues**: Several tasks lack formal Issues. GitHub API access has been intermittent. Issue #46 remains open (see Schema State).
 - **Shopify CSV export**: Phil to provide a current export for GMCOM-014 real-export validation.
@@ -127,15 +126,15 @@ Supabase project: `wcrcllhvgbhykbonopzx` (separate co-owner account).
 
 ## Next Phase
 
-**Phase I — Legacy-to-Canonical Bridge.** I1 is delivered and merged (PR #54, `gm-commerce/main` at `2c26b61`). **I2 (ongoing `ready_for_ai` integration + durable bridge job, deployed before backfill) is next and has not begun; it requires design and owner authorization.** Then I3 (existing identity backfill); then later slices (photos, CommercePackage, content assembly, claims mapping, drift hardening) that each require their own design and — for claims — an explicit SourceCategory/evidence decision.
+**Phase I — Legacy-to-Canonical Bridge.** I1 (PR #54, `2c26b61`) and I2 (PR #55, `bef5a5d`) are delivered and merged. **I3 (existing identity backfill, re-runnable, no duplicates, excluded-row recording) is next and has not begun; it requires design and owner authorization.** Then later slices (photos, CommercePackage, content assembly, claims mapping, drift hardening) that each require their own design and — for claims — an explicit SourceCategory/evidence decision.
 
 ## AI Capacity
 
 | Contributor | Role | Capacity | Current assignment |
 |---|---|---|---|
 | ChatGPT | Project manager / coordinator | Available | Phase I plan/status documentation |
-| Claude | Primary coordination + implementation + review | Available | Phase I: I1 delivered (PR #54, `main` `2c26b61`); I2 design inventory + status documentation |
+| Claude | Primary coordination + implementation + review | Available | Phase I: I1 (PR #54) + I2 (PR #55) delivered; I3 design inventory + status documentation |
 | GitHub Copilot | Implementation contributor | Quota-limited | Phase I bridge foundation (I1) |
-| Phil | Product owner | Available as schedule permits | I2 slice authorization |
+| Phil | Product owner | Available as schedule permits | I3 slice authorization |
 
 Capacity status should be updated whenever a provider limit is reached or resets.

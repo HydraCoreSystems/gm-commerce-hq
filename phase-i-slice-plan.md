@@ -2,13 +2,13 @@
 
 _Authoritative plan for the legacy-to-canonical bridge. Based on the read-only design inventory (see `handoffs/2026-08-08-phase-h-complete-and-legacy-canonical-bridge-handoff.md` and its superseding addendum). Last updated: 2026-08-08._
 
-> **Slice status:** **I1 is delivered and merged** — PR #54, merge SHA `2c26b61` on `gm-commerce/main`. **I2 has not begun** and remains pending design and owner authorization; its design section below is the current authoritative spec. I3 and later slices are not begun.
+> **Slice status:** **I1 and I2 are delivered and merged** — PR #54, merge SHA `2c26b61`; **PR #55, merge SHA `bef5a5d`** on `gm-commerce/main`. **I3 has not begun** and remains pending design and owner authorization; its design section below is the current authoritative spec, and a read-only I3 design inventory with smallest-safe recommendations is in progress. Later slices are not begun.
 
 ## Purpose
 
 Bridge the real, working production pipeline (GMCOM-001–012: Skrybix / Product-SKU-Generator selection → SKU-named photo folder → human photo confirmation → AI listing generation → Shopify publish), which today writes **only legacy tables** (`products`, `listing_packages`, `photo_sets`, `commerce_details`), into the canonical model (`canonical_product_concepts`, `canonical_skus`, `canonical_source_records`, `canonical_commerce_packages`, `canonical_claims`, …) that Phases B–H were built around.
 
-The **architecture itself is approved by the owner as the next phase** (owner decision 11). Slices are independently testable and mergeable. **I1 is delivered and merged (PR #54, `2c26b61`); no later Phase I slice has been implemented.**
+The **architecture itself is approved by the owner as the next phase** (owner decision 11). Slices are independently testable and mergeable. **I1 and I2 are delivered and merged (PR #54, `2c26b61`; PR #55, `bef5a5d`); no later Phase I slice has been implemented.**
 
 ## Critical finding this phase addresses
 
@@ -55,8 +55,8 @@ An earlier draft stated ProductConcept + SKU creation "makes Phase H's review su
 | Slice | Scope | Status | Base SHA |
 |---|---|---|---|
 | I1 | Bridge foundation + atomic identity RPC (ProductConcept + SKU + SourceRecord + mapping) | **Merged — PR #54, `2c26b61`** | On `main` |
-| I2 | Ongoing `ready_for_ai` integration + durable bridge job | Planned — design below; not begun | After I1 (`2c26b61`) |
-| I3 | Existing identity backfill (re-runnable, no duplicates, excluded-row recording) | Planned — design below | After I2 |
+| I2 | Ongoing `ready_for_ai` integration + durable bridge jobs | **Merged — PR #55, `bef5a5d`** | On `main` |
+| I3 | Existing identity backfill (re-runnable, no duplicates, excluded-row recording) | Planned — design below; not begun | After I2 (`bef5a5d`) |
 | Later | PhotoAsset/evidence after approved photo sets | Design required before implementation | After I3 |
 | Later | CommercePackage creation at a truthful lifecycle boundary | Design required before implementation | After I3 |
 | Later | CommercePackage content assembly | Design required before implementation | TBD |
@@ -98,7 +98,7 @@ An earlier draft stated ProductConcept + SKU creation "makes Phase H's review su
 
 ## I2 — Ongoing `ready_for_ai` integration
 
-> **Status: not begun.** Pending design and owner authorization. The design sections below are the current authoritative spec. A read-only I2 design inventory (file-level evidence, architecture options, transaction boundaries, idempotency/retry/concurrency behavior, proposed files and tests, and owner decisions) is in progress and will be available for owner review; it has not been adopted into this plan yet.
+> **Status: delivered and merged.** PR #55, merge SHA `bef5a5d` on `gm-commerce/main`. The sections below are the authoritative spec of what shipped. Implementation facts (verified against the merged migration `20260808120000_phase_i_slice2_ready_for_ai_bridge_jobs.sql`): a SEPARATE durable `canonical_legacy_bridge_jobs` queue (per `(environment, legacy_table, legacy_key)`, statuses `pending/processing/done/failed/mismatch/retry/dead_letter`, lease columns, `attempt_count`/`max_attempts`, `available_at` backoff, `correlation_id`, `error_context`, status-shape CHECK) + immutable `canonical_legacy_bridge_job_attempts` ledger; `gmcom_mark_product_ready_for_ai` (guarded transition + enqueue in one transaction; enqueue failure rolls back the transition, later canonical failure never reverts it; no-op replay) + idempotent `gmcom_enqueue_legacy_bridge_job` + `gmcom_claim_legacy_bridge_job` (`FOR UPDATE SKIP LOCKED`, 300s lease, lease-expiry recovery, retry re-claim, dead-letter exhaustion) + `gmcom_finish_legacy_bridge_job` (lease-token validated, 60s→1h exponential backoff). Request-triggered processing via `app/actions.ts` `markReadyForAI` (best-effort, failure-isolated) and the manual drain `drainBridgeJobs` server action, which is **authorized owner/co_owner-only** via `lib/auth` `resolvePrincipal`/`requireRole` (staff/service rejected; no new permission invented; button hidden on `/` when not authorized). Post-merge `main` CI for `bef5a5d` verified green (run `31262417220`, success).
 
 **Objective.** Make the legacy `ready_for_ai` transition and a durable bridge-job enqueue **atomic on the legacy side**, then process the bridge job using the I1 machinery — without rolling back the successful legacy transition when bridging fails (owner decision 4).
 
@@ -125,6 +125,8 @@ An earlier draft stated ProductConcept + SKU creation "makes Phase H's review su
 ---
 
 ## I3 — Existing identity backfill
+
+> **Status: not begun.** Pending design and owner authorization. The design sections below are the current authoritative spec. A read-only I3 design inventory (file-level evidence, architecture options, transaction/idempotency/concurrency behavior, exclusion + reporting model, proposed files and tests, and smallest-safe recommendations for the unresolved I3 decisions) is in progress and will be available for owner review; it has not been adopted into this plan yet.
 
 **Objective.** Re-runnable backfill of existing eligible `products` rows (at/after `ready_for_ai`) using the same I1 bridge machinery — no duplicates, archived/ineligible/malformed rows skipped and recorded as excluded.
 
@@ -175,6 +177,6 @@ No commerce mutations or publishing. No CommercePackage content fabrication. No 
 
 ## Unresolved decisions by earliest blocking slice
 
-- **Block I2 (not I1):** exact wiring of `markReadyForAI` (modify vs wrap RPC); outbox consumption trigger and retry schedule; enqueue mechanism.
-- **Block I3 (not I1/I2):** excluded-row retention semantics; malformed-row policy; drift threshold/alerting.
+- **Block I2 (not I1):** resolved by the delivered I2 implementation (see the I2 status note above).
+- **Block I3 (not I1/I2):** excluded-row retention semantics; malformed-row policy; drift threshold/alerting; dry-run requirement; batch size and restart/checkpoint; treatment of already-terminal I2 jobs; whether backfill is owner/co-owner-initiated manually or automatic. The read-only I3 design inventory provides smallest-safe recommendations for each; the owner still decides.
 - **Block later slices (not I1/I2/I3):** photo-approval evidence representation (claim vs RecordContext); CommercePackage creation timing (owner decision 10) and content-availability; **SourceCategory/evidence design for AI-content Claims (owner decision 8 — the only hard owner-gated blocker)**; any new SourceCategory (deliberate, never invented).
