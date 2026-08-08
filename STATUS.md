@@ -88,7 +88,7 @@ Supabase project: `wcrcllhvgbhykbonopzx` (separate co-owner account).
 
 ## Active Work
 
-- **Phase H**: H1–H7 merged (`main` at `7f5a153b3e23fccece0a87e39b3949288132210a`, PR #51). Phase H remains in progress (only Phase G policy/learned-rule context not yet surfaced — the last documented gap). **Correction: Phase G Slice 5 (RBAC) is confirmed merged** (PR #34, commit `688f060`, "final Phase G slice" — verified as an ancestor of current `main`). The earlier "not started" note in this file was stale, not current fact. Phase G is fully complete; H8 is unblocked.
+- **Phase H**: H1–H7 merged, plus the Phase G policy/rule operational-purpose prerequisite correction (`main` at `23c4e39f450d779605b221b3466af127d235a29c`, PR #52). Phase H remains in progress (only Phase G policy/learned-rule context not yet surfaced — the last documented gap, now fully unblocked). Phase G Slice 5 (RBAC) is confirmed merged (PR #34, commit `688f060`, "final Phase G slice"). Next proposed work is the **H8 design inventory for Phase G policy/learned-rule context** (design only).
 - **GitHub Issues**: Several tasks lack formal Issues. GitHub API access has been intermittent.
 - **Shopify CSV export**: Phil to provide a current export for GMCOM-014 real-export validation.
 
@@ -106,7 +106,7 @@ Supabase project: `wcrcllhvgbhykbonopzx` (separate co-owner account).
 | Contributor | Role | Capacity | Current assignment |
 |---|---|---|---|
 | ChatGPT | Project manager / coordinator | Available | Phase H status + coordinator handoff |
-| Claude | Primary coordination + implementation + review | Available | H7 merged (PR #51); verifying Phase G5 status before H8 design |
+| Claude | Primary coordination + implementation + review | Available | Phase G prerequisite fix merged (PR #52); H8 design inventory (next) |
 | GitHub Copilot | Implementation contributor | Quota-limited | Phase H review assistance |
 | Phil | Product owner | Available as schedule permits | Phase H authorization |
 
