@@ -1,12 +1,20 @@
 # Current Project Status
 
-_Last updated: 2026-08-07_
+_Last updated: 2026-08-08_
 
-## Phase H — Read-Only Completed-Review Refinement (current)
+## Phase I — Legacy-to-Canonical Bridge (planned; planning authorized, no implementation begun)
 
-Phase H surfaces what Phases B–G actually produced as read-only context in the review shell. The authoritative slice plan is `phase-h-slice-plan.md` (this repo).
+Phase I bridges the real, working production pipeline (GMCOM-001–012) into the canonical model that Phases B–H built around. The authoritative slice plan is `phase-i-slice-plan.md` (this repo).
 
-`gm-commerce/main` is at `606c5a5301605e05ee71e470cabaf129ec28e589`.
+**Status: planning authorized by the owner; NO implementation begun.** No Phase I slice, migration, RPC, or application change exists yet. Slice I1 implementation requires a separate owner go.
+
+Owner-approved decisions (2026-08-08, full list in `phase-i-slice-plan.md`): identity creation triggered at `products.status='ready_for_ai'`; a new `canonical_legacy_entity_bridge` table (not a widening of `canonical_legacy_field_bridge`); ProductConcept + SKU + SourceRecord + mapping created atomically by one RPC; legacy never rolls back on bridge failure; a durable bridge job/outbox (`pending/processing/done/failed/mismatch/retry` + `correlation_id` + error context); ongoing production bridging activated before backfill; archived rows initially skipped and recorded as excluded (no invented retention); no AI-content Claims until a defensible SourceCategory/evidence design is approved; **I1 does not populate the Phase H queue** (only a canonical CommercePackage does); CommercePackage timing is a later decision; the bridge architecture is approved as the next phase.
+
+## Phase H — Read-Only Completed-Review Refinement (complete)
+
+Phase H surfaced what Phases B–G actually produced as read-only context in the review shell. The authoritative slice plan is `phase-h-slice-plan.md` (this repo).
+
+`gm-commerce/main` is at `c65b0232d834c200195b38ce992d1e42272954d1` (merge of PR #53 / H8).
 
 | Slice | Scope | PR | Status | Merge |
 |---|---|---|---|---|
@@ -15,14 +23,18 @@ Phase H surfaces what Phases B–G actually produced as read-only context in the
 | H3 | Operational-only commerce queue discovery | #44 | Merged | `d3cba35` |
 | Phase E prerequisite correction | Operational-only compliance current-state/gate derivation | #45 | Merged | `1472660` |
 | H4 | Read-only Phase E compliance context on commerce detail | #47 | Merged | `606c5a5` |
+| H5 | Read-only Phase C evidence-library context | #48 | Merged | `4b5ff6a` |
+| Phase F prerequisite correction | Operational-only recommendation current-state derivation | #49 | Merged | `372ee23` |
+| H6 | Read-only Phase F recommendation + §18 SelectionTrace context | #50 | Merged | `905d658` |
+| H7 | Read-only Phase D vision-analysis context | #51 | Merged | `7f5a153` |
+| Phase G prerequisite correction | Operational-only policy/rule read paths | #52 | Merged | `23c4e39` |
+| H8 | Read-only Phase G policy + learned-rule context | #53 | Merged | `c65b023` |
 
 All commerce capabilities remain `false`; Phase H is strictly read-only.
 
-**Phase H remains in progress** because the C/D/F/G read-only context is not yet surfaced: Phase C evidence-library context, Phase D vision-analysis context, Phase F recommendation + `SelectionTrace` context, and Phase G policy/learned-rule context are all genuine remaining gaps (not yet designed — see `phase-h-slice-plan.md`).
+> Historical note: the earlier "Phase H remains in progress / next proposed work: H5" guidance is superseded. Phase H is fully complete (H1–H8 + the Phase E/F/G prerequisite corrections). The current next phase is Phase I (above).
 
-**Next proposed work: H5 design inventory for Phase C evidence-library context** — design only, not implementation.
-
-**Open issue:** [#46 — Reconcile Phase E compliance gate functions and approval trigger into schema.sql](https://github.com/HydraCoreSystems/gm-commerce/issues/46) (open). Ordered migrations remain the deployment source of truth; this does not block Phase H.
+**Open issue:** [#46 — Reconcile Phase E compliance gate functions and approval trigger into schema.sql](https://github.com/HydraCoreSystems/gm-commerce/issues/46) (open). Ordered migrations remain the deployment source of truth; this does not block Phase I.
 
 ## Phase G — Owner-Editable Policies and Learned-Rule Activation (complete; superseded "next task" guidance is historical)
 
@@ -88,8 +100,8 @@ Supabase project: `wcrcllhvgbhykbonopzx` (separate co-owner account).
 
 ## Active Work
 
-- **Phase H is COMPLETE.** H1–H8 all merged (`main` at `c65b0232d834c200195b38ce992d1e42272954d1`, PR #53). All five context surfaces named in Phase H's purpose — compliance, evidence, recommendations, vision, policy/learned-rules — are live read-only on the commerce detail page. One honestly-documented residual gap remains (genus/category/marketplace-scoped policies/rules — no data model for it exists yet; see `phase-h-slice-plan.md`'s "Known residual gap" section), not a missed requirement. No further Phase H slices are proposed.
-- **CRITICAL FINDING, read before doing anything else: the canonical model has no live population path.** The real, working, production pipeline (GMCOM-001–012: Skrybix or Product-SKU-Generator selection → SKU-named photo folder → human photo confirmation → AI listing generation → Shopify publish) writes only into legacy tables (`products`, `listing_packages`, `photo_sets`, `commerce_details`). Nothing bridges that into the canonical model (`canonical_product_concepts`, `canonical_skus`, `canonical_commerce_packages`, etc.) that Phase B–H were built around — confirmed by code search (zero non-framework writers to those tables) and by `DECISIONS.md`'s own mention of the un-built "GMCOM-011-to-canonical bridge." Practical effect: Phase H's entire review surface likely has nothing real to show in production today. Full detail, and a proposed (not yet authorized) "Phase I: Legacy-to-Canonical Bridge" smallest-first-slice, in `handoffs/2026-08-08-phase-h-complete-and-legacy-canonical-bridge-handoff.md` — read that file before scoping any next work.
+- **Phase I planning is authorized; NO implementation begun.** The authoritative multi-slice plan is `phase-i-slice-plan.md`. The critical finding that motivated it (the canonical model has no live population path) is documented in `handoffs/2026-08-08-phase-h-complete-and-legacy-canonical-bridge-handoff.md` (with its superseding addendum recording the approved decisions). I1 (bridge foundation + atomic identity RPC) requires a separate owner go before any branch or migration.
+- **Phase H is COMPLETE** (H1–H8 + Phase E/F/G prerequisite corrections, `main` at `c65b023`, PR #53). No further Phase H slices are proposed.
 - **GitHub Issues**: Several tasks lack formal Issues. GitHub API access has been intermittent.
 - **Shopify CSV export**: Phil to provide a current export for GMCOM-014 real-export validation.
 
@@ -100,15 +112,15 @@ Supabase project: `wcrcllhvgbhykbonopzx` (separate co-owner account).
 
 ## Next Phase
 
-**Not yet authorized.** Phase H is complete, but the priority next step is almost certainly the legacy-to-canonical bridge (see the critical finding above and the linked handoff), not any of PRODUCT_RESET §23's "Later phases" (broader recommendations, Skrybix contract expansion, Etsy, public editorial publishing) — those all assume real `CommercePackage`s exist, which today they likely don't. The bridge itself needs a proper multi-slice plan (like every prior phase got) before implementation starts, and Phil's explicit authorization on that plan.
+**Phase I — Legacy-to-Canonical Bridge.** Planning is authorized (owner decisions 1–11 recorded in `phase-i-slice-plan.md`); **implementation is not begun** and I1 requires a separate owner go. Slices are ordered I1 → I2 (ongoing `ready_for_ai` integration, deployed before backfill) → I3 (existing identity backfill) → later slices (photos, CommercePackage, content assembly, claims mapping, drift hardening) that each require their own design and — for claims — an explicit SourceCategory/evidence decision.
 
 ## AI Capacity
 
 | Contributor | Role | Capacity | Current assignment |
 |---|---|---|---|
-| ChatGPT | Project manager / coordinator | Available | Phase H status + coordinator handoff |
-| Claude | Primary coordination + implementation + review | Available | Phase H complete (H1–H8, PR #53); awaiting Phil's next-phase scoping decision |
-| GitHub Copilot | Implementation contributor | Quota-limited | Phase H review assistance |
-| Phil | Product owner | Available as schedule permits | Phase H authorization |
+| ChatGPT | Project manager / coordinator | Available | Phase I plan/status documentation |
+| Claude | Primary coordination + implementation + review | Available | Phase H complete; Phase I plan written, awaiting owner go on I1 |
+| GitHub Copilot | Implementation contributor | Quota-limited | Phase I bridge foundation (after I1 authorized) |
+| Phil | Product owner | Available as schedule permits | Phase I slice authorization |
 
 Capacity status should be updated whenever a provider limit is reached or resets.

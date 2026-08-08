@@ -58,3 +58,31 @@ I have not had time under the usage constraint to do a full multi-slice plan the
 ## 6. Immediate next action for whoever picks this up
 
 Do NOT start implementing slice I1 yet. First: properly scope Phase I the way every prior phase got scoped — read the full legacy schema (`products`, `listing_packages`, `photo_sets`, `commerce_details` — starting points are in `supabase/schema.sql`), read `lib/photo-root.ts` and `app/select/actions.ts` for the full intake flow, decide the claims-mapping question in section 4 above, and get Phil's explicit authorization on the resulting slice plan before any branch is created. This is a bigger, higher-stakes body of work than any individual H-slice — treat it with at least the same rigor, not less.
+
+---
+
+## 7. SUPERSEDING ADDENDUM (2026-08-08) — Phase I plan is now authoritative; the proposed-I1 language in §4 is superseded
+
+Phase I was properly scoped (read-only design inventory → approved plan). **The authoritative document is now `phase-i-slice-plan.md` (this repo).** §4's "proposed smallest first slice" and its language are superseded by the approved decisions below. **No Phase I slice, migration, RPC, or application change has been implemented.** I1 requires a separate owner go.
+
+### Approved owner decisions (verbatim; supersede any earlier proposed-I1 language)
+
+1. Canonical identity creation is triggered when a legacy `products` row reaches `status='ready_for_ai'`.
+2. Create a new `canonical_legacy_entity_bridge` table. Do **not** widen or repurpose `canonical_legacy_field_bridge`.
+3. ProductConcept + SKU + SourceRecord + entity-bridge mapping must be created **atomically by one database RPC**.
+4. The legacy pipeline must **not roll back** because canonical bridging fails.
+5. A durable bridge job/outbox must record `pending`, `processing`, `done`, `failed`, `mismatch`, `retry` information, `correlation_id`, and error context.
+6. **Activate ongoing production bridging before backfilling** existing rows.
+7. Initially **skip archived rows and record them as excluded**; do not invent retention behavior.
+8. Do **not** create canonical Claims for AI-generated listing content until a defensible SourceCategory/evidence design is explicitly approved.
+9. **I1 does not make anything visible in the Phase H queue.** That requires a canonical CommercePackage in a later slice.
+10. CommercePackage creation timing remains a later design decision (likely generation finalization / entry into review), but is **not** authorized as an I1 assumption.
+11. The legacy-to-canonical bridge architecture itself is approved as the next phase.
+
+### Correction to §4's claim
+
+§4 said the smallest I1 (identity at `ready_for_ai`) is "the minimum needed to make Phase H's review surface show something real for the first time." That is **incorrect**: Phase H's queue lists canonical **CommercePackages**, not SKUs. Only a canonical CommercePackage can enter the Phase H queue. I1 (ProductConcept + SKU + SourceRecord + mapping) is required groundwork but makes nothing visible in Phase H.
+
+### Immediate next action (updated)
+
+Read `phase-i-slice-plan.md`. Do not implement I1 until Phil issues the separate owner "go" for I1. The plan records per-slice entry criteria, exclusions, dependencies, and the unresolved decisions that block each later slice (and the one hard owner-gated blocker: AI-content Claims, decision 8).
