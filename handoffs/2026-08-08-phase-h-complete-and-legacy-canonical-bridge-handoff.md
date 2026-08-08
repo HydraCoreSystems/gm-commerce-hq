@@ -86,3 +86,16 @@ Phase I was properly scoped (read-only design inventory → approved plan). **Th
 ### Immediate next action (updated)
 
 Read `phase-i-slice-plan.md`. Do not implement I1 until Phil issues the separate owner "go" for I1. The plan records per-slice entry criteria, exclusions, dependencies, and the unresolved decisions that block each later slice (and the one hard owner-gated blocker: AI-content Claims, decision 8).
+
+## 8. SUPERSEDING ADDENDUM (2026-08-08) — I1 delivered and merged
+
+**Current-state correction:** §7's statement "No Phase I slice, migration, RPC, or application change has been implemented" is superseded. **I1 was implemented and merged.**
+
+- **I1 merged via PR #54** (`HydraCoreSystems/gm-commerce`): "Phase I Slice 1: identity bridge foundation + atomic identity RPC".
+- **Merge SHA:** `2c26b61dafae3ac79cdb54dced7160adab06a7fd` (`gm-commerce/main`).
+- What shipped: `canonical_legacy_entity_bridge` (durable, environment-scoped bridge/outbox substrate; statuses `pending/processing/done/failed/mismatch/retry/excluded`; `correlation_id`, `retry_count`, `error_context`, `first_bridged_at`, `last_bridged_at`) and the atomic `gmcom_bridge_product_identity(p_environment, p_sku, p_correlation_id)` RPC creating ProductConcept → SKU → SourceRecord → mapping in one transaction (operational-only, `owner_approval_state='pending'`, idempotent replay, drift/mismatch fail-visible, concurrent-winner convergence, atomic rollback, service_role-only execute, RLS fail-closed + env-scoped). Consolidated `schema.sql` mirror updated in the same merge.
+- **Genuine two-session concurrency was tested and passed:** two simultaneous PostgreSQL sessions calling the RPC for the same eligible product both return the same ProductConcept/SKU/SourceRecord IDs, with exactly one identity set and three bridge rows remaining.
+- **I1 still does not create CommercePackages and does not populate the Phase H queue.** I2 has not begun and remains pending design and owner authorization.
+- Post-merge `main` CI for `2c26b61` was still queued at the time of this update (Copilot workflow completed success); verify the CI workflow independently.
+
+The authoritative current state is `STATUS.md` and `phase-i-slice-plan.md` (both updated for I1's delivery). This addendum exists to correct the outdated "no implementation begun" current-state fact while preserving the historical record above.

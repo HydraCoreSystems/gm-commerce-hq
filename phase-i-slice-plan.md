@@ -2,11 +2,13 @@
 
 _Authoritative plan for the legacy-to-canonical bridge. Based on the read-only design inventory (see `handoffs/2026-08-08-phase-h-complete-and-legacy-canonical-bridge-handoff.md` and its superseding addendum). Last updated: 2026-08-08._
 
+> **Slice status:** **I1 is delivered and merged** — PR #54, merge SHA `2c26b61` on `gm-commerce/main`. **I2 has not begun** and remains pending design and owner authorization; its design section below is the current authoritative spec. I3 and later slices are not begun.
+
 ## Purpose
 
 Bridge the real, working production pipeline (GMCOM-001–012: Skrybix / Product-SKU-Generator selection → SKU-named photo folder → human photo confirmation → AI listing generation → Shopify publish), which today writes **only legacy tables** (`products`, `listing_packages`, `photo_sets`, `commerce_details`), into the canonical model (`canonical_product_concepts`, `canonical_skus`, `canonical_source_records`, `canonical_commerce_packages`, `canonical_claims`, …) that Phases B–H were built around.
 
-The **architecture itself is approved by the owner as the next phase** (owner decision 11). Slices are independently testable and mergeable. **No Phase I slice has been implemented.**
+The **architecture itself is approved by the owner as the next phase** (owner decision 11). Slices are independently testable and mergeable. **I1 is delivered and merged (PR #54, `2c26b61`); no later Phase I slice has been implemented.**
 
 ## Critical finding this phase addresses
 
@@ -52,8 +54,8 @@ An earlier draft stated ProductConcept + SKU creation "makes Phase H's review su
 
 | Slice | Scope | Status | Base SHA |
 |---|---|---|---|
-| I1 | Bridge foundation + atomic identity RPC (ProductConcept + SKU + SourceRecord + mapping) | Planned — design below; not implemented | After I1's migration lands on `main` |
-| I2 | Ongoing `ready_for_ai` integration + durable bridge job | Planned — design below | After I1 |
+| I1 | Bridge foundation + atomic identity RPC (ProductConcept + SKU + SourceRecord + mapping) | **Merged — PR #54, `2c26b61`** | On `main` |
+| I2 | Ongoing `ready_for_ai` integration + durable bridge job | Planned — design below; not begun | After I1 (`2c26b61`) |
 | I3 | Existing identity backfill (re-runnable, no duplicates, excluded-row recording) | Planned — design below | After I2 |
 | Later | PhotoAsset/evidence after approved photo sets | Design required before implementation | After I3 |
 | Later | CommercePackage creation at a truthful lifecycle boundary | Design required before implementation | After I3 |
@@ -64,6 +66,8 @@ An earlier draft stated ProductConcept + SKU creation "makes Phase H's review su
 ---
 
 ## I1 — Bridge foundation and atomic identity RPC
+
+> **Status: delivered and merged.** PR #54, merge SHA `2c26b61` on `gm-commerce/main`. The sections below are the authoritative spec of what shipped. Implementation facts (verified against the merged migration `20260808090000_phase_i_slice1_identity_bridge_foundation.sql`): the RPC is `gmcom_bridge_product_identity(p_environment, p_sku, p_correlation_id)` returning `(concept_id, sku_id, source_record_id, status)`; the bridge table uses statuses `pending/processing/done/failed/mismatch/retry/excluded` with `correlation_id`, `retry_count`, `error_context`, `first_bridged_at`, `last_bridged_at`, and a UNIQUE `(environment, legacy_table, legacy_key, canonical_entity_type)`; a two-session concurrency test was added to the `phase-b0-slice1-review-shell-live` CI job and passes (both simultaneous calls return the same identity set; exactly one identity set and three bridge rows remain). **I1 still does not create CommercePackages and does not populate the Phase H queue.** Post-merge `main` CI for `2c26b61` was still queued at the time of the status update (verify independently).
 
 **Objective.** Establish the bridge substrate and the single atomic operation that turns an eligible legacy product into canonical identity (ProductConcept + SKU + SourceRecord) with a permanent mapping — no production action integration, no backfill, nothing visible in the Phase H queue.
 
@@ -93,6 +97,8 @@ An earlier draft stated ProductConcept + SKU creation "makes Phase H's review su
 ---
 
 ## I2 — Ongoing `ready_for_ai` integration
+
+> **Status: not begun.** Pending design and owner authorization. The design sections below are the current authoritative spec. A read-only I2 design inventory (file-level evidence, architecture options, transaction boundaries, idempotency/retry/concurrency behavior, proposed files and tests, and owner decisions) is in progress and will be available for owner review; it has not been adopted into this plan yet.
 
 **Objective.** Make the legacy `ready_for_ai` transition and a durable bridge-job enqueue **atomic on the legacy side**, then process the bridge job using the I1 machinery — without rolling back the successful legacy transition when bridging fails (owner decision 4).
 
