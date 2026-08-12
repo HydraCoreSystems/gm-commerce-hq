@@ -206,6 +206,21 @@ After each planning or merge boundary:
 Do not allow important scope, corrections, or sequencing decisions to exist only
 in chat.
 
+### Permanent completion rule (slice-level)
+
+A slice is not considered complete until:
+
+- its application PR is merged;
+- post-merge CI is green;
+- `STATUS.md` records the PR number, merge SHA, migration identifiers, outcome,
+  and remaining work;
+- `DECISIONS.md` records any new architectural or owner decision;
+- `COMPLETION.md` is reconciled where the slice changes the finish-line state.
+
+Do not require a final merge SHA before the application PR has actually merged.
+The application PR merge itself is what produces the merge SHA; the HQ records
+are updated after that merge and its post-merge CI result are known.
+
 ## Known coordination risks
 
 - Headquarters `STATUS.md` may lag the live application repository. Always verify
