@@ -1,45 +1,58 @@
 # Current Project Status
 
-_Last updated: 2026-08-09 (Phase I Slice 4 merged via PR #57)_
+_Last updated: 2026-08-12 (Phase I completed through PR #68; Phase 0 Slice 1 merged via PR #69)_
 
-## Phase I — Legacy-to-Canonical Bridge (I1, I2, I3, and I4 delivered and merged; next slice pending design/owner authorization)
+## Phase I — Legacy-to-Canonical Bridge (complete: I1–I5, CommercePackage, claims, drift, routing, and the three destination adapters all delivered and merged through PR #68)
 
-Phase I bridges the real, working production pipeline (GMCOM-001–012) into the canonical model that Phases B–H built around. The authoritative slice plan is `phase-i-slice-plan.md` (this repo). **The master completion map is `COMPLETION.md` (this repo)** — a plain-English answer to "what must be finished before GM Commerce is operationally complete," including the remaining Phase I slices in dependency order, the owner decisions that block them, and measurable exit criteria.
+Phase I bridges the real, working production pipeline (GMCOM-001–012) into the canonical model that Phases B–H built around. The authoritative slice plan is `phase-i-slice-plan.md` (this repo); **Phase I is now fully implemented and merged**. **The master completion map is `COMPLETION.md` (this repo)** — a plain-English answer to "what must be finished before GM Commerce is operationally complete," including the remaining launch/cutover work, the owner decisions that block it, and measurable exit criteria.
 
-**Status: I1, I2, I3, and I4 delivered and merged.** I1 via PR #54 (`2c26b61`); I2 via PR #55 (`bef5a5d`); I3 via PR #56 (`285a2a0`); **I4 via PR #57 (`gm-commerce/main` at `e58766e`)**. The identity backbone and the approved-photo bridge are complete. The likely next slice (historical approved-photo backfill using the I4 bridge machinery) is a **design recommendation only** (see `phase-i-slice-plan.md`) and has not begun. No later slice (CommercePackage, claims, drift hardening) has begun.
+**Phase I is complete as implemented:** every slice in the plan is delivered and merged — the identity backbone (I1–I3), the approved-photo bridge (I4), the historical approved-photo backfill (I5, PR #58), canonical CommercePackage creation (PR #59), content assembly (PR #60), truthful claims mapping + field lineage (PR #61), drift monitoring/reconciliation hardening (PR #62), the review-shell display of assembled packages (PR #63), atomic canonical review decisions (PR #64), canonical destination routing/outbox (PR #65), and the three destination adapters — Listings Spreadsheet (PR #66), Shopify draft (PR #67), and Etsy draft (PR #68).
 
-`gm-commerce/main` is at `e58766e67e5877d8e34187846d63476b7a63c4f9` (merge of PR #57 / I4).
+**"Implemented" is not the same as "launch-ready."** The adapters exist and are live-tested against Postgres, but the operational launch conditions are still open: automatic background processing is not yet complete (workers are manual server actions today), the current-version invariant/regeneration safety and destination-request deduplication findings from Phase 0 review are not yet fixed, Shopify draft-only end-to-end launch verification has not been executed, Etsy remains fail-closed until its token store and policy source are configured and verified, and legacy cutover has not begun. See `COMPLETION.md` and the Phase 0 section below.
+
+`gm-commerce/main` is at `c6cf6c89c7a233a5c026c55e1e4a3fb89de5edfe` (merge of PR #69 / Phase 0 Slice 1).
 
 | Slice | Scope | PR | Status | Merge |
 |---|---|---|---|---|
 | I1 | Bridge foundation + atomic identity RPC (`canonical_legacy_entity_bridge` + `gmcom_bridge_product_identity`) | #54 | Merged | `2c26b61` |
-| I2 | Ongoing `ready_for_ai` integration + durable bridge jobs (`canonical_legacy_bridge_jobs` + `gmcom_mark_product_ready_for_ai`/enqueue/claim/finish) | #55 | Merged | `bef5a5d` |
-| I3 | Existing identity backfill (explicit four-status allowlist; durable run + immutable per-run outcome ledger; dry-run→single-use real-run workflow) | #56 | Merged | `285a2a0` |
-| I4 | Approved photo sets → canonical PhotoAsset (attached assets only; atomic approval+enqueue; durable per-photo mappings; replay-validating bridge RPC; fail-closed dispatch) | #57 | Merged | `e58766e` |
+| I2 | Ongoing `ready_for_ai` integration + durable bridge jobs | #55 | Merged | `bef5a5d` |
+| I3 | Existing identity backfill (dry-run → single-use real-run, immutable outcome ledger) | #56 | Merged | `285a2a0` |
+| I4 | Approved photo sets → canonical PhotoAsset | #57 | Merged | `e58766e` |
+| I5 | Historical approved-photo backfill (dry-run promotion, I4 reuse, idempotency) | #58 | Merged | `cc19611` |
+| CommercePackage creation | Canonical package at generation finalization | #59 | Merged | `a4db76f` |
+| CommercePackage content assembly | Exact-version listing content, photo refs, lineage | #60 | Merged | `38519f` |
+| Truthful claims mapping | AI-content claims + field lineage (`under_review`, no fabrication) | #61 | Merged | `ca613e2` |
+| Drift monitoring | Bounded resumable scans, read-only, no repair | #62 | Merged | `8f60120` |
+| Review-shell display | Assembled canonical package content in the review shell | #63 | Merged | `a0e426a` |
+| Atomic canonical review decisions | Approve/reject atomicity, retry, rollback, fail-closed | #64 | Merged | `ee76dcd` |
+| Canonical destination routing + outbox | Durable enqueue, lifecycle, ledger, idempotency, eligibility | #65 | Merged | `65be13b` |
+| Listings Spreadsheet adapter | Durable export ledger, lease-protected claim, atomic completion | #66 | Merged | `3721fe` |
+| Canonical Shopify draft adapter | Lease-protected claim, atomic marketplace success, immutable attempts | #67 | Merged | `19b562` |
+| Canonical Etsy draft adapter | Create-intent-before-remote-call, `needs_confirmation` parking, single-use recreate | #68 | Merged | `f6e24bb` |
 
-I2 delivered: **every real `ready_for_ai` transition now atomically enqueues a durable identity-bridge job** (`gmcom_mark_product_ready_for_ai` transitions `products.status` and enqueues/resolves the job in one transaction; the transition never rolls back on later canonical failure). Request-triggered processing (best-effort after transition + a bounded manual drain), leases (`FOR UPDATE SKIP LOCKED`, 300s, lease-expiry recovery), retries (exponential backoff 60s→1h), dead-lettering, end-to-end correlation continuity, immutable attempt history, and **owner/co-owner-only authorization for the manual drain** (via `lib/auth` `resolvePrincipal`/`requireRole`; staff/service rejected, no new permission invented) are all delivered and live-tested.
+**I1–I5 and the CommercePackage/claims/drift work are all implemented and merged.** The identity backbone, approved-photo bridge, historical photo backfill, canonical CommercePackage creation at generation finalization, exact-version content assembly, truthful claims mapping (under_review only), drift monitoring (read-only, no repair), and the review-shell display of assembled package content are all delivered. The Phase H queue is now populated by **real canonical CommercePackages** created at generation finalization (PR #59), assembled with exact-version content and photo references (PR #60), and displayed in the review shell (PR #63) — the earlier "the review shell has no real CommercePackages" statement no longer holds.
 
-I3 delivered: **existing eligible legacy products can be backfilled into canonical ProductConcept/SKU/SourceRecord identity** through a required dry-run → single-use real-run workflow (an exact completed `dry_run` authorizes at most one real run, DB-enforced by FK + guard trigger + partial unique index). Explicit four-status eligibility (`ready_for_ai`/`generating`/`review`/`published`); durable `canonical_legacy_backfill_runs` + immutable per-run outcome ledger; keyset batching + resumability; owner/co-owner authorization; run identity/source immutability + a strict run state machine (a failed run accepts no outcomes until explicitly resumed; forged completed runs and falsified `completed_at` are rejected); finish/record serialization (`FOR UPDATE`). **Backfill remains identity-only.**
+The review/publishing workflow now offers the three confirmed operational destination choices (owner decisions 12–13): **Shopify** (PR #67), **Etsy** (PR #68), and the **permanent Listings Spreadsheet** (PR #66), each writing through the canonical destination outbox (PR #65) with lease-protected processing, durable/idempotent ledger behavior, and fail-closed dispatch. **Implemented does not mean launch-ready** — see the Phase 0 section and `COMPLETION.md` for the launch conditions that remain.
 
-I2 and I3 **create ProductConcept/SKU/SourceRecord identities only** — no CommercePackages, Claims, photos/evidence records, Phase H queue entries, publishing changes, or later Phase I work were created.
+I4 details (delivered earlier and still accurate): an approved legacy photo set gains permanent canonical PhotoAsset records (one per original; no files copied/moved); derivatives remain linked `canonical_photo_asset_derivatives` representation rows; canonical approval stays `pending` (the legacy approved photo set remains the source of truth); durable per-photo mappings with provenance; replay validates full state; the processor dispatches fail-closed.
 
-I4 delivered: **an approved legacy photo set now gains permanent canonical PhotoAsset records**, and the bridge is fully durable and replay-safe. What shipped (verified against the merged migration `20260808200000_phase_i_slice4_approved_photo_bridge.sql`, `lib/canonical/bridge/processor.ts`, `app/photos/actions.ts`):
+I2 delivered: every real `ready_for_ai` transition atomically enqueues a durable identity-bridge job; request-triggered processing + a bounded manual drain (owner/co-owner authorized via `lib/auth`), leases, retries, dead-lettering, correlation continuity, immutable attempt history.
 
-- **Approval and durable photo-job enqueue are atomic** — `gmcom_mark_photo_set_approved` performs the guarded `needs_review → approved` transition and enqueues one durable `photo_sets` bridge job in a single transaction (concurrent-change guard; idempotent enqueue). **A later processing failure never reverses the legacy approval.**
-- **One canonical PhotoAsset per original legacy photo** (`canonical_photo_assets`), preserving `storage_ref` (the original path) and `original_content_hash`; **no files are copied or moved** — only paths/hashes are recorded.
-- **Derivatives remain linked representations** in the new `canonical_photo_asset_derivatives` table (one row per legacy `photo_derivatives` row, environment-scoped RLS), not separate identities.
-- **Canonical approval remains `pending`** — the generic `createEntity` cannot fabricate `owner_approval_state='genuine'`, so the legacy approved photo set stays the legacy source of truth.
-- **Permanent per-photo mappings exist** — `canonical_legacy_entity_bridge.legacy_table` was additively widened to allow `photo_assets`, one bridge row per canonical PhotoAsset with `legacy_approved_at`/`legacy_approved_by` provenance; the run/outcome ledger stays separate operational history.
-- **Replay validates the full state** — `gmcom_bridge_photo_set` is idempotent and concurrency-safe (deterministic lock order; two-session race proven), and replay verifies `record_purpose`, approval state, linkage, storage/hash drift, full derivative state (missing/extra/duplicate), and **one shared correlation** across assets, mappings, and derivatives; partial mappings are never silently repaired (mismatch fails visible).
-- **Unsupported bridge jobs fail closed** — the processor routes `products` → the identity RPC and `photo_sets` → the photo RPC, and any other `legacy_table` is never routed and finishes as a permanent `failed`/`bridge_unsupported` job (unit-tested for `listing_packages`, `commerce_details`, and unknown tables).
+I3 delivered: existing eligible legacy products can be backfilled into canonical identity through a required dry-run → single-use real-run workflow (DB-enforced single-use), explicit four-status eligibility, durable run + immutable per-run outcome ledger, keyset batching + resumability, run integrity/state machine. **Backfill remains identity-only** (I3); I5 added the historical approved-photo backfill using the I4 machinery and the I3 pattern.
 
-**I4 exclusions (all hold):** no historical photo backfill; no Claims or Evidence; no CommercePackage; no Phase H queue population; no publishing changes; no later Phase I work.
+> Post-merge CI for the completed Phase I and Phase 0 Slice 1 (merged `main` at `c6cf6c8`, run `31565668557`): **success, 24/24 jobs**. The `schema-drift-deferred` job completed successfully with its documented deferred-drift behavior (its two steps skip when `SUPABASE_DB_URL` is unset and the migration ledger is not bootstrapped); those steps are skipped by design, not "passed."
 
-> **CI workflow-size incident and permanent correction.** PR #57's branch CI produced no runs because `.github/workflows/ci.yml` had grown to 529,068 bytes — above GitHub's 512,000-byte per-workflow file limit, which rejects the workflow **before any run is created** (silent; the runner and repo were fine). Fix: the large Phase I live-Postgres SQL heredocs and race scripts were extracted from `ci.yml` into checked-in `supabase/live/` files (invoked via short `psql -f` / `bash` steps, preserving exact order/assertions/env), and a structural test (`supabase/ci-workflow-size.test.ts`) fails any workflow YAML file at or above the project's 450 KB guard. `ci.yml` is now **414,483 bytes**; the fix was verified end to end before merge.
+## Phase 0 — Launch hardening (Slice 1 delivered and merged via PR #69; Slice 2 and 3 planned, not begun)
 
-> Post-merge CI for `e58766e` (I4) verified green: CI workflow run `31307655608` = success (independently pulled on 2026-08-09; Copilot run `31307656060` also success). Prior post-merge runs: `285a2a0` → `31281957101` (CI) success; `bef5a5d` → `31262417220` (CI) / `31262419177` (Copilot) success; `2c26b61` → `31258503603` (CI) success.
+**Phase 0 Slice 1 — Environment and legacy-access hardening (PR #69, merge `c6cf6c8`, migration `20260812120000_phase0_slice1_environment_and_legacy_access_hardening.sql`):** removed every hardcoded/defaulted `'production'` from the legacy→canonical bridge and the legacy-writing RPCs; every such RPC now takes a **required** environment argument and sets the `app.gmcom_caller_environment` GUC transaction-locally, and the dual-write triggers fail closed when no environment is set (`gmcom_set_legacy_bridge_environment` / `gmcom_require_active_environment`). The unused 8-arg `gmcom_apply_legacy_correction` overload was dropped. The legacy tables (`products`, `listing_packages`, `listing_package_versions`, `photo_*`, `shopify_publications`, `commerce_details`) gained RLS with `anon`/`authenticated` revoked and explicit `service_role` grants. TS wrappers thread `resolveTrustedEnvironment()`. **Does not retire legacy functionality** and does not touch current-version logic, destination dedup, automation, batch, or photo architecture.
 
-Owner-approved decisions (2026-08-08, full list in `phase-i-slice-plan.md`): identity creation triggered at `products.status='ready_for_ai'`; a new `canonical_legacy_entity_bridge` table (not a widening of `canonical_legacy_field_bridge`); ProductConcept + SKU + SourceRecord + mapping created atomically by one RPC; legacy never rolls back on bridge failure; a durable bridge job/outbox (`pending/processing/done/failed/mismatch/retry` + `correlation_id` + error context); ongoing production bridging activated before backfill; archived rows initially skipped and recorded as excluded (no invented retention); no AI-content Claims until a defensible SourceCategory/evidence design is approved; **I1/I2/I3/I4 do not populate the Phase H queue** (only a canonical CommercePackage does); CommercePackage timing is a later decision; the bridge architecture is approved as the next phase.
+**Approved next sequence (owner-confirmed):**
+
+- **Phase 0 Slice 2 — current-version invariant and regeneration safety** (review finding D1/High): an older APPROVED canonical package stays approved and routable after regeneration; the bridge supersedes only `status='draft'` and there is no "newer version exists" guard in the review-decision/enqueue RPCs. Verify and fix in a later Phase 0 slice.
+- **Phase 0 Slice 3 — destination-request deduplication** (review finding D2/High): duplicate destination requests on double submit (no unique constraint on `(environment, package, destination)`, fresh correlation per submit, no UI pending guard). Fix before auto-processing.
+- **Legacy cutover** comes later, after the required capabilities and dependencies are safely moved (see the safe cutover sequence in `DECISIONS.md` and `COMPLETION.md`).
+- **Automatic background processing** (review finding C3/High — no automatic consumer; processors are manual server actions) is a launch requirement per owner decision 3, and is not yet implemented.
+- **Batch processing (Phase 2) is REQUIRED before launch but is a mandatory owner-design checkpoint:** it must not be designed or implemented until Phil approves how it should work.
 
 ## Phase H — Read-Only Completed-Review Refinement (complete)
 
@@ -63,9 +76,9 @@ Phase H surfaced what Phases B–G actually produced as read-only context in the
 
 All commerce capabilities remain `false`; Phase H is strictly read-only.
 
-> Historical note: the earlier "Phase H remains in progress / next proposed work: H5" guidance is superseded. Phase H is fully complete (H1–H8 + the Phase E/F/G prerequisite corrections). The current next phase is Phase I (above).
+> Historical note: the earlier "Phase H remains in progress / next proposed work: H5" guidance is superseded. Phase H is fully complete (H1–H8 + the Phase E/F/G prerequisite corrections). The subsequent phase was Phase I (now also complete through PR #68).
 
-**Open issue:** [#46 — Reconcile Phase E compliance gate functions and approval trigger into schema.sql](https://github.com/HydraCoreSystems/gm-commerce/issues/46) (open). Ordered migrations remain the deployment source of truth; this does not block Phase I.
+**Open issue:** [#46 — Reconcile Phase E compliance gate functions and approval trigger into schema.sql](https://github.com/HydraCoreSystems/gm-commerce/issues/46) (open). Ordered migrations remain the deployment source of truth; this does not block Phase I or Phase 0.
 
 ## Phase G — Owner-Editable Policies and Learned-Rule Activation (complete; superseded "next task" guidance is historical)
 
@@ -79,7 +92,7 @@ Phase G enabled editing policies and confirming Phase F recommendations into sta
 | G4 | Rule activation engine — learned rules table, activate/revoke/query | #33 | Merged |
 | G5 | RBAC enforcement — §15 role matrix at Repository command layer | Not started |
 
-> Historical note: the earlier "Next Phase: Phase G" guidance is superseded. Phase G is complete through G4; G5 (RBAC enforcement) remains a later-phase item. The current next phase is Phase H (above).
+> Historical note: the earlier "Next Phase: Phase G" guidance is superseded. Phase G is complete through G4; G5 (RBAC enforcement) remains a later-phase item. The current next phase is Phase 0 launch hardening (above).
 
 ## Phase F (complete)
 
@@ -103,15 +116,26 @@ See `phase-f-slice-plan.md` for per-slice scope, acceptance criteria, and exclus
 
 ## Schema State
 
-- I1 merged (PR #54, `2c26b61`): `canonical_legacy_entity_bridge` table + `gmcom_bridge_product_identity` RPC added, with the consolidated `schema.sql` mirror updated in the same merge (applies clean from empty on PG15; 36 ordered migrations).
-- I2 merged (PR #55, `bef5a5d`): 37th migration adds `canonical_legacy_bridge_jobs` (durable per-`(environment, legacy_table, legacy_key)` job queue with lease/backoff/dead-letter machinery) + immutable `canonical_legacy_bridge_job_attempts` ledger + `gmcom_mark_product_ready_for_ai`/`gmcom_enqueue_legacy_bridge_job`/`gmcom_claim_legacy_bridge_job`/`gmcom_finish_legacy_bridge_job` RPCs; consolidated `schema.sql` mirror updated; live PG15 coverage added to the `phase-b0-slice1-review-shell-live` CI job.
-- I3 merged (PR #56, `285a2a0`): 38th migration redefines `gmcom_bridge_product_identity` with the explicit four-status eligibility allowlist and adds `canonical_legacy_backfill_runs` + immutable per-run `canonical_legacy_backfill_row_outcomes` + `source_dry_run_id` single-use linkage (FK + guard trigger + partial unique index) + `gmcom_legacy_backfill_inspect`/`start_run`/`resume_run`/`record_outcome`/`finish_run` RPCs + run integrity/state-machine guard; consolidated `schema.sql` mirror updated; live PG15 + two-session race coverage added to `phase-b0-slice1-review-shell-live`.
-- I4 merged (PR #57, `e58766e`): 39th migration additively widens `canonical_legacy_entity_bridge.legacy_table` CHECK to allow `photo_assets`, adds `original_content_hash` to `canonical_photo_assets`, creates `canonical_photo_asset_derivatives` (linked representations, RLS env-scoped), adds `legacy_approved_at`/`legacy_approved_by` provenance columns to the bridge, and adds `gmcom_mark_photo_set_approved` (atomic guarded approval + durable enqueue) + `gmcom_bridge_photo_set` (deterministic lock order; one PhotoAsset per original; full replay validation of purpose/approval/storage/linkage/derivatives/correlation); `lib/canonical/bridge/processor.ts` generalized to fail-closed dispatch; consolidated `schema.sql` mirror updated; live PG15 (20 checks) + two-session race coverage added to the `phase-b0-slice1-review-shell-live` CI job (I4 steps run within that job, alongside I1–I3). Also in this merge: the CI workflow-size correction (large Phase I live SQL/race bodies extracted to `supabase/live/`; `ci.yml` 529,068 → 414,483 bytes; `supabase/ci-workflow-size.test.ts` 450 KB guard).
+- **50 ordered migrations** now apply cleanly from empty (CI `schema-from-empty` passes), and the consolidated `schema.sql` mirror builds an equivalent fresh database (verified on merged `main` at `c6cf6c8`).
+- I1 (PR #54, `2c26b61`): `canonical_legacy_entity_bridge` + `gmcom_bridge_product_identity`.
+- I2 (PR #55, `bef5a5d`): `canonical_legacy_bridge_jobs` + immutable `canonical_legacy_bridge_job_attempts` + `gmcom_mark_product_ready_for_ai`/`gmcom_enqueue_legacy_bridge_job`/`gmcom_claim_legacy_bridge_job`/`gmcom_finish_legacy_bridge_job`.
+- I3 (PR #56, `285a2a0`): redefined `gmcom_bridge_product_identity` (four-status allowlist) + `canonical_legacy_backfill_runs` + immutable `canonical_legacy_backfill_row_outcomes` + dry-run→real-run single-use linkage + backfill RPCs.
+- I4 (PR #57, `e58766e`): `canonical_legacy_entity_bridge.legacy_table` widened to `photo_assets` + provenance columns; `canonical_photo_asset_derivatives`; `gmcom_mark_photo_set_approved` + `gmcom_bridge_photo_set`; fail-closed processor; CI workflow-size correction (`ci.yml` 529,068 → 414,483 bytes; `supabase/ci-workflow-size.test.ts` 450 KB guard).
+- I5 (PR #58, `cc19611`): migration `20260809120000_phase_i_slice5_historical_approved_photo_backfill.sql` — historical approved-photo backfill (dry-run promotion, I4 reuse, idempotency, grants).
+- CommercePackage creation (PR #59, `a4db76f`): `20260809180000_phase_i_commerce_package_creation.sql`.
+- Content assembly (PR #60, `38519f`): `20260809210000_phase_i_commerce_package_content_assembly.sql`.
+- Claims mapping (PR #61, `ca613e2`): `20260809220000_phase_i_claims_mapping.sql`.
+- Drift monitor (PR #62, `8f60120`): `20260810000000_phase_i_drift_monitor.sql`.
+- Atomic canonical review decisions (PR #64, `ee76dcd`): `20260811000000_phase_i_atomic_canonical_review_decisions.sql`.
+- Destination routing outbox (PR #65, `65be13b`): `20260812000000_phase_i_canonical_destination_routing_outbox.sql`.
+- Listings Spreadsheet adapter (PR #66, `3721fe`): `20260813000000_phase_i_listings_spreadsheet_adapter.sql`.
+- Shopify draft adapter (PR #67, `19b562`): `20260814000000_phase_i_canonical_shopify_draft_adapter.sql`.
+- Etsy draft adapter (PR #68, `f6e24bb`): `20260815000000_phase_i_canonical_etsy_draft_adapter.sql`.
+- Phase 0 Slice 1 (PR #69, `c6cf6c8`): `20260812120000_phase0_slice1_environment_and_legacy_access_hardening.sql` — environment helpers, hardened dual-write triggers and legacy RPCs, legacy-table RLS/grants.
 - Migration gap resolved: `commerce_details` table and `listing_packages.seo_title`/`seo_description` columns have committed DDL at `20260802040000_commerce_readiness.sql`.
 - `20260803000000_commerce_field_ownership.sql` (price/`content_provenance`) was deliberately retired as never-applied.
-- CI schema-from-empty passes from committed migrations.
 - `HY-LOB01-C04` test data verified absent from the live database (2026-08-05).
-- **Issue #46 open:** consolidated `schema.sql` omits the Phase E compliance gate functions/trigger (`gmcom_compliance_check_is_stale`, `gmcom_current_compliance_check_status`, `gmcom_compliance_gate_outcome`, `gmcom_compliance_checks_with_status`, `gmcom_guard_commerce_package_approval` + trigger and dependencies). Ordered migrations are the deployment source of truth; reconciliation is tracked, not blocking.
+- **Issue #46 open:** consolidated `schema.sql` omits the Phase E compliance gate functions/trigger. Ordered migrations are the deployment source of truth; reconciliation is tracked, not blocking.
 
 ## Completed (pre-Phase F)
 
@@ -135,9 +159,10 @@ Supabase project: `wcrcllhvgbhykbonopzx` (separate co-owner account).
 
 ## Active Work
 
-- **Phase I: I1, I2, I3, and I4 delivered and merged (PR #54 `2c26b61`, PR #55 `bef5a5d`, PR #56 `285a2a0`, PR #57 `e58766e`).** The authoritative multi-slice plan is `phase-i-slice-plan.md`; the master completion map is `COMPLETION.md`. I1 established `canonical_legacy_entity_bridge` + the atomic `gmcom_bridge_product_identity` RPC; I2 wired every real `ready_for_ai` transition to a durable identity-bridge job; I3 delivered existing-identity backfill (dry-run → single-use real-run, immutable outcome ledger, run integrity/state machine); I4 delivered the approved-photo bridge (atomic approval+enqueue; one canonical PhotoAsset per original; derivatives as linked representations; canonical approval stays `pending`; durable per-photo mappings with provenance; full replay validation including one shared correlation; fail-closed processor dispatch; no files copied/moved) and the CI workflow-size correction (extracted Phase I live tests to `supabase/live/`; `ci.yml` 414,483 bytes; 450 KB guard test). **The likely next slice (I5: historical approved-photo backfill using the I4 bridge machinery) is a design recommendation only and is NOT authorized** (see `phase-i-slice-plan.md`). All of I1–I4 create ProductConcept/SKU/SourceRecord identities and canonical PhotoAssets only — no CommercePackages, Claims, evidence records, Phase H queue entries, or publishing changes.
+- **Phase I is complete through PR #68** (I1–I5, CommercePackage creation/assembly/claims, drift, review decisions, routing outbox, and the Shopify/Etsy/Listings-Spreadsheet adapters). The review shell is populated by real canonical CommercePackages; the three destination choices are implemented. **Implemented ≠ launch-ready**: see the Phase 0 section for the launch conditions still open (auto-processing, D1/D2 fixes, Shopify launch verification, Etsy fail-closed configuration, legacy cutover).
+- **Phase 0 Slice 1 merged (PR #69, `c6cf6c8`)** — environment and legacy-access hardening delivered and post-merge CI green (run `31565668557`, 24/24 jobs, with the documented deferred-drift skip for `schema-drift-deferred`).
 - **Phase H is COMPLETE** (H1–H8 + Phase E/F/G prerequisite corrections, merged at `c65b023` per PR #53). No further Phase H slices are proposed.
-- **Owner-confirmed output requirement (2026-08-09):** the review/publishing workflow must offer **Shopify, Etsy, and a permanent master Listings Spreadsheet** as **mandatory operational destination choices**. **For each approved listing, Phil or Crystal chooses the intended route; a listing is not required to be sent to all three destinations simultaneously.** Etsy remains scheduled under **ROADMAP Milestone 4, now classified as required for overall GM Commerce completion** (not optional). The Listings Spreadsheet is append-only and idempotent, written through a **durable export job/outbox with an immutable export ledger** (never claimed atomic with the database), configured from trusted server credentials only, and is **not** a per-listing downloadable file — CSV download is optional backup only. Overall completion requires a **proven working path for each of the three choices**, demonstrated by completion testing that routes an **approved canonical CommercePackage through Shopify, through Etsy, and through the Listings Spreadsheet without Phil or Crystal rewriting or reformatting the approved content**. Recorded as decisions 12–13 in `phase-i-slice-plan.md` and in `COMPLETION.md`; **not implemented and not authorized to implement yet**.
+- **Owner-confirmed output requirement (2026-08-09):** the review/publishing workflow must offer **Shopify, Etsy, and a permanent master Listings Spreadsheet** as **mandatory operational destination choices**. **For each approved listing, Phil or Crystal chooses the intended route; a listing is not required to be sent to all three destinations simultaneously.** Etsy is required for overall GM Commerce completion (ROADMAP Milestone 4, now classified as required). The Listings Spreadsheet is append-only and idempotent, written through a **durable export job/outbox with an immutable export ledger** (never claimed atomic with the database), configured from trusted server credentials only, and is **not** a per-listing downloadable file (CSV download is optional backup only). All three adapters are now **implemented** (PRs #66–#68); launch readiness is still pending (Etsy fail-closed until its token store and policy source are configured and verified; Shopify draft-only end-to-end launch verification not yet executed; automatic background processing not yet complete).
 - **GitHub Issues**: Several tasks lack formal Issues. GitHub API access has been intermittent. Issue #46 remains open (see Schema State).
 - **Shopify CSV export**: Phil to provide a current export for GMCOM-014 real-export validation.
 
@@ -148,15 +173,15 @@ Supabase project: `wcrcllhvgbhykbonopzx` (separate co-owner account).
 
 ## Next Phase
 
-**Phase I — Legacy-to-Canonical Bridge.** I1 (PR #54, `2c26b61`), I2 (PR #55, `bef5a5d`), I3 (PR #56, `285a2a0`), and I4 (PR #57, `e58766e`) are delivered and merged. **The proposed next slice (I5: historical approved-photo backfill using the I4 bridge machinery) is a design recommendation only and is NOT authorized.** Then the later Phase I slices (CommercePackage creation, content assembly, claims mapping, drift hardening) each require their own design and — for claims — an explicit SourceCategory/evidence owner decision. See `COMPLETION.md` for the full finish-line map, remaining-slice sequence, and exit criteria.
+**Phase 0 — Launch hardening.** Slice 1 (PR #69, `c6cf6c8`) is merged. **Phase 0 Slice 2 (current-version invariant and regeneration safety) and Phase 0 Slice 3 (destination-request deduplication) are approved to plan and implement next, in that order; Phase 0 Slice 2 has not begun.** Legacy cutover comes later, after required capabilities and dependencies are safely moved. **Phase 2 batch behavior is a mandatory owner-design checkpoint and must not be designed or implemented until Phil approves how it should work.** See `COMPLETION.md` for the finish-line map and the remaining launch conditions.
 
 ## AI Capacity
 
 | Contributor | Role | Capacity | Current assignment |
 |---|---|---|---|
-| ChatGPT | Project manager / coordinator | Available | Phase I plan/status documentation |
-| Claude | Primary coordination + implementation + review | Available | Phase I: I1 (PR #54) + I2 (PR #55) + I3 (PR #56) + I4 (PR #57) delivered; I5 design recommendation + master completion map documented |
+| ChatGPT | Project manager / coordinator | Available | HQ status/plan documentation |
+| Claude | Primary coordination + implementation + review | Available | Phase I complete (PRs #54–#68); Phase 0 Slice 1 (PR #69) delivered; Phase 0 Slice 2 pending authorization |
 | GitHub Copilot | Implementation contributor | Quota-limited | Phase I bridge foundation (I1) |
-| Phil | Product owner | Available as schedule permits | Next Phase I slice authorization |
+| Phil | Product owner | Available as schedule permits | Phase 0 Slice 2 authorization; Phase 2 batch design decision |
 
 Capacity status should be updated whenever a provider limit is reached or resets.

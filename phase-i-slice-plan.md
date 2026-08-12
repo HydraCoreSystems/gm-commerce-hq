@@ -1,14 +1,14 @@
 # Phase I Slice Plan — Legacy-to-Canonical Bridge
 
-_Authoritative plan for the legacy-to-canonical bridge. Based on the read-only design inventory (see `handoffs/2026-08-08-phase-h-complete-and-legacy-canonical-bridge-handoff.md` and its superseding addenda). The master completion map is `COMPLETION.md` (this repo). Last updated: 2026-08-09._
+_Historical/phase plan for the legacy-to-canonical bridge. Based on the read-only design inventory (see `handoffs/2026-08-08-phase-h-complete-and-legacy-canonical-bridge-handoff.md` and its superseding addenda). The master completion map is `COMPLETION.md` (this repo). **For current status, see `STATUS.md`; this document is retained as the historical record of the plan and its execution.** Last updated: 2026-08-12._
 
-> **Slice status:** **I1, I2, I3, and I4 are delivered and merged** — PR #54, merge SHA `2c26b61`; **PR #55, merge SHA `bef5a5d`**; **PR #56, merge SHA `285a2a0`**; **PR #57, merge SHA `e58766e`** on `gm-commerce/main`. The identity backbone and the approved-photo bridge are complete. **The next Phase I slice has not begun** and remains pending design and owner authorization; the likely next boundary is historical approved-photo backfill using the I4 bridge machinery (a design recommendation only — not authorized). Later slices are not begun.
+> **Slice status: Phase I is COMPLETE as implemented.** **I1–I5, CommercePackage creation, content assembly, truthful claims mapping, drift monitoring, review-shell display, atomic review decisions, canonical destination routing/outbox, and the three destination adapters (Listings Spreadsheet, Shopify, Etsy) are all delivered and merged** — PR #54 (`2c26b61`), PR #55 (`bef5a5d`), PR #56 (`285a2a0`), PR #57 (`e58766e`), PR #58 (`cc19611`), PR #59 (`a4db76f`), PR #60 (`38519f`), PR #61 (`ca613e2`), PR #62 (`8f60120`), PR #63 (`a0e426a`), PR #64 (`ee76dcd`), PR #65 (`65be13b`), PR #66 (`3721fe`), PR #67 (`19b562`), PR #68 (`f6e24bb`) on `gm-commerce/main`. "Implemented" is not "launch-ready": see `COMPLETION.md` for the launch conditions that remain. No further Phase I slice is proposed; the next implementation work is Phase 0 Slice 2 (current-version invariant + regeneration safety) and Phase 0 Slice 3 (destination-request deduplication), per `STATUS.md`.
 
 ## Purpose
 
 Bridge the real, working production pipeline (GMCOM-001–012: Skrybix / Product-SKU-Generator selection → SKU-named photo folder → human photo confirmation → AI listing generation → Shopify publish), which today writes **only legacy tables** (`products`, `listing_packages`, `photo_sets`, `commerce_details`), into the canonical model (`canonical_product_concepts`, `canonical_skus`, `canonical_source_records`, `canonical_commerce_packages`, `canonical_claims`, …) that Phases B–H were built around.
 
-The **architecture itself is approved by the owner as the next phase** (owner decision 11). Slices are independently testable and mergeable. **I1, I2, I3, and I4 are delivered and merged (PR #54, `2c26b61`; PR #55, `bef5a5d`; PR #56, `285a2a0`; PR #57, `e58766e`); no later Phase I slice has been implemented.**
+The **architecture itself is approved by the owner as the next phase** (owner decision 11). Slices are independently testable and mergeable. **All Phase I slices are delivered and merged** (PRs #54–#68; see the status note at the top of this document).
 
 ## Critical finding this phase addresses
 
@@ -60,11 +60,19 @@ An earlier draft stated ProductConcept + SKU creation "makes Phase H's review su
 | I2 | Ongoing `ready_for_ai` integration + durable bridge jobs | **Merged — PR #55, `bef5a5d`** | On `main` |
 | I3 | Existing identity backfill (re-runnable, no duplicates, excluded-row recording) | **Merged — PR #56, `285a2a0`** | On `main` |
 | I4 | Approved photo sets → canonical PhotoAsset (attached assets only; atomic approval+enqueue; durable per-photo mappings; replay-validating bridge RPC; fail-closed dispatch) | **Merged — PR #57, `e58766e`** | On `main` |
-| I5 | Historical approved-photo backfill (proposed; reuse I4 bridge machinery + I3 backfill pattern) | Design recommendation only — not authorized | After I4 |
-| Later | CommercePackage creation at a truthful lifecycle boundary | Design required before implementation; owner decision 10 | After I4 |
-| Later | CommercePackage content assembly | Design required before implementation | TBD |
-| Later | Claims mapping (only after SourceCategory/evidence authorization) | Blocked on owner decision 8; design required | TBD |
-| Later | Drift monitoring + operational reconciliation hardening | Design required before implementation | After I4 |
+| I5 | Historical approved-photo backfill (reuse I4 bridge machinery + I3 backfill pattern) | **Merged — PR #58, `cc19611`** | On `main` |
+| CommercePackage creation | Canonical CommercePackage at generation finalization | **Merged — PR #59, `a4db76f`** | On `main` |
+| CommercePackage content assembly | Exact-version listing content, photo refs, field lineage | **Merged — PR #60, `38519f`** | On `main` |
+| Truthful claims mapping | AI-content claims + field lineage (`under_review`, no fabrication) | **Merged — PR #61, `ca613e2`** | On `main` |
+| Drift monitoring | Bounded resumable read-only scans, no repair | **Merged — PR #62, `8f60120`** | On `main` |
+| Review-shell display | Assembled canonical package content in the review shell | **Merged — PR #63, `a0e426a`** | On `main` |
+| Atomic canonical review decisions | Approve/reject atomicity, retry, rollback, fail-closed | **Merged — PR #64, `ee76dcd`** | On `main` |
+| Canonical destination routing + outbox | Durable enqueue, lifecycle, ledger, idempotency, eligibility | **Merged — PR #65, `65be13b`** | On `main` |
+| Listings Spreadsheet adapter | Durable export ledger, lease-protected claim, atomic completion | **Merged — PR #66, `3721fe`** | On `main` |
+| Canonical Shopify draft adapter | Lease-protected claim, atomic marketplace success, immutable attempts | **Merged — PR #67, `19b562`** | On `main` |
+| Canonical Etsy draft adapter | Create-intent-before-remote-call, `needs_confirmation` parking, single-use recreate | **Merged — PR #68, `f6e24bb`** | On `main` |
+
+**All Phase I slices are merged.** No further Phase I slice is proposed. The next implementation work is Phase 0 (see `STATUS.md`): Slice 2 (current-version invariant + regeneration safety) and Slice 3 (destination-request deduplication), followed later by automatic background processing and dependency-safe legacy cutover.
 
 ---
 
@@ -185,24 +193,33 @@ An earlier draft stated ProductConcept + SKU creation "makes Phase H's review su
 
 ---
 
-## Later slices — design required before implementation
+## Later slices — delivered and merged (historical)
 
-### I5 — Historical approved-photo backfill (proposed, design recommendation only — NOT authorized)
-Objective: use the I4 bridge machinery (`gmcom_bridge_photo_set`, durable per-photo mappings, fail-closed processor) and the I3 backfill pattern (durable run + immutable per-run outcome ledger, required dry-run → single-use real-run workflow, keyset batching/resumability) to backfill photo sets that were already `approved` before I4 went live. It is the smallest remaining slice because it reuses the most existing machinery and completes the photo story that later CommercePackage media references depend on; the ordering is already consistent with the decided production-before-backfill rule (owner decision 6). Requires a design pass to ground the eligibility query (approved `photo_sets` → their `photo_assets`) against the merged schema and prior decisions — not assumed. Not authorized yet; requires owner confirmation that historical photo backfill is wanted.
+### I5 — Historical approved-photo backfill (delivered and merged — PR #58, `cc19611`)
 
-### CommercePackage creation (truthful lifecycle boundary)
-Objective: create a `draft` `canonical_commerce_packages` row at a truthful boundary. Owner decision 10: timing is a later design decision (likely generation finalization / entry into review) and is **not** an I1 assumption. This is the slice that makes a package appear in the Phase H queue (see the correction above). Requires I1.
+Delivered per its original objective: use the I4 bridge machinery (`gmcom_bridge_photo_set`, durable per-photo mappings, fail-closed processor) and the I3 backfill pattern (durable run + immutable per-run outcome ledger, required dry-run → single-use real-run workflow, keyset batching/resumability) to backfill photo sets that were already `approved` before I4 went live. Migration `20260809120000_phase_i_slice5_historical_approved_photo_backfill.sql`; dry-run promotion, I4 reuse, idempotency, and grants covered by live tests.
 
-### CommercePackage content assembly
-Objective: populate package content/`offers[]`/`fieldLineage[]` (deferred in the contract — `getCompletedPackage` is `deferred`). Requires CommercePackage creation + a content-availability decision.
+### CommercePackage creation (truthful lifecycle boundary) — delivered and merged (PR #59, `a4db76f`)
+
+Delivered at generation finalization: a canonical CommercePackage is created when a generation finalizes. This is the slice that made real packages appear in the review-shell queue. Migration `20260809180000_phase_i_commerce_package_creation.sql`.
+
+### CommercePackage content assembly — delivered and merged (PR #60, `38519f`)
+
+Delivered: package content/`offers[]`/`fieldLineage[]` populated with exact-version listing content and photo references. Migration `20260809210000_phase_i_commerce_package_content_assembly.sql`. Review-shell display of the assembled content followed in PR #63 (`a0e426a`).
 
 > **Confirmed owner requirement that constrains the output work (decisions 12–13, 2026-08-09):** the review/publishing workflow must offer **Shopify, Etsy, and a permanent master Listings Spreadsheet** as **mandatory operational destination choices** — for each approved listing, Phil or Crystal chooses the intended route (a listing is not required to be sent to all three) — and Etsy remains scheduled under **ROADMAP Milestone 4, now required for overall completion**. The Listings Spreadsheet path is append-only and idempotent, writes via a **durable export job/outbox + immutable export ledger** (never claimed atomic with the database), uses trusted-server-config credentials only, and is **not** a per-listing downloadable file (CSV download is optional backup only). Overall completion requires a **proven working path for each of the three choices**, demonstrated by completion testing that routes an **approved canonical CommercePackage through Shopify, through Etsy, and through the Listings Spreadsheet without Phil or Crystal rewriting or reformatting the approved content**. See decisions 12–13 and `COMPLETION.md`. Not designed or authorized yet.
 
-### Claims mapping (AI-generated listing content)
-Objective: map `listing_packages` AI content to canonical Claims. **Blocked on an explicit owner decision** on a defensible SourceCategory/evidence design (owner decision 8). No slice may create AI-content Claims before that. The closed 6-category taxonomy and the evidence-anchor requirements mean this cannot be bridged "for free."
+### Claims mapping (AI-generated listing content) — delivered and merged (PR #61, `ca613e2`)
 
-### Drift monitoring and operational reconciliation hardening
-Objective: scheduled drift detection (legacy value hash vs bridged value), alerting, reconciliation. Requires I3's drift reporting as a base.
+Delivered: AI-content listing claims are bridged to canonical Claims **as `under_review` only, with no fabrication** (consistent with owner decision 8 — no AI-content Claim is created as verified/genuine without a defensible SourceCategory/evidence design). Migration `20260809220000_phase_i_claims_mapping.sql`; §7 field lineage covered by live tests.
+
+### Drift monitoring and operational reconciliation hardening — delivered and merged (PR #62, `8f60120`)
+
+Delivered: bounded, resumable, read-only drift detection scans (legacy value hash vs bridged value) with an immutable drift ledger and **no repair** (drift is surfaced, not silently corrected). Migration `20260810000000_phase_i_drift_monitor.sql`.
+
+### Canonical destination routing, outbox, and the three adapters — delivered and merged (PRs #65–#68)
+
+Delivered: canonical destination routing + durable outbox (PR #65, `65be13b`), the Listings Spreadsheet adapter (PR #66, `3721fe`), the canonical Shopify draft adapter (PR #67, `19b562`), and the canonical Etsy draft adapter (PR #68, `f6e24bb`). Implemented ≠ launch-ready: see `COMPLETION.md` and `STATUS.md` for the remaining launch conditions (automatic background processing, Shopify draft-only launch verification, Etsy fail-closed configuration).
 
 ---
 
@@ -215,5 +232,6 @@ No commerce mutations or publishing. No CommercePackage content fabrication. No 
 - **Block I2 (not I1):** resolved by the delivered I2 implementation (see the I2 status note above).
 - **Block I3 (not I1/I2):** resolved by the delivered I3 implementation (see the I3 status note above) — excluded-row retention, malformed-row policy, drift alerting, dry-run requirement, batch/restart behavior, terminal-job treatment, and manual owner/co-owner initiation were all decided as implemented.
 - **Block I4:** **resolved by the delivered I4 implementation** (see the I4 section above). The seven inventory decisions are recorded as resolved-as-implemented: photos as attached commerce assets; one canonical PhotoAsset per legacy **original**; derivatives as linked representation rows (additive table); canonical PhotoAssets stay `owner_approval_state='pending'` with the legacy approved photo set as source of truth; `storage_ref` = legacy `original_path` + preserved `original_content_hash` (no copy/move); durable per-photo bridge mapping via additive `legacy_table` CHECK widening; ongoing approval-event integration shipped before any photo backfill.
-- **Proposed I5 (design recommendation only — NOT authorized):** historical approved-photo backfill using the I4 bridge machinery and the I3 backfill pattern (see the I5 note above). It is the smallest remaining slice because it reuses the most existing machinery and completes the photo story that later CommercePackage media references depend on; ordering is already consistent with owner decision 6. **No hard design blocker**; requires owner confirmation that historical photo backfill is wanted.
-- **Block later slices (not I4/I5):** potential future **image-region evidence** use — an EvidenceAnchor whose `ImageRegion` locator references a canonical PhotoAsset (separate from, and not part of, I4); CommercePackage creation timing (owner decision 10) and content-availability; per-field lineage resolution for legacy-migrated fields (`PRODUCT_RESET` §7); **SourceCategory/evidence design for AI-content Claims (owner decision 8 — the only hard owner-gated blocker)**; any new SourceCategory (deliberate, never invented).
+- **I5:** **delivered and merged (PR #58, `cc19611`)** — historical approved-photo backfill using the I4 bridge machinery and the I3 backfill pattern. No longer a design recommendation only.
+- **Later Phase I slices:** **all delivered and merged through PR #68** (CommercePackage creation at generation finalization, content assembly, truthful claims mapping, drift monitoring, review-shell display, atomic review decisions, destination routing/outbox, and the Listings Spreadsheet / Shopify / Etsy adapters). No further Phase I slice is proposed. Remaining launch conditions are tracked in `COMPLETION.md`; the next implementation work is Phase 0 Slice 2 and Slice 3 per `STATUS.md`.
+- **Potential future (not part of Phase I):** **image-region evidence** — an EvidenceAnchor whose `ImageRegion` locator references a canonical PhotoAsset; **SourceCategory/evidence design for AI-content Claims** (owner decision 8 — claims are bridged as `under_review` today, with no fabricated verified/genuine claims); any new SourceCategory (deliberate, never invented).

@@ -574,3 +574,75 @@ architectural pattern: any future append-only versioned canonical table
 (not just freshness policies) should default to this "derive current from
 the un-superseded chain head" shape rather than reintroducing a mutable
 current-state flag.
+
+## 2026-08-12 — Exact-version package snapshots and current-version routing safety
+
+**Decision:** A canonical CommercePackage is assembled from an **exact, versioned snapshot** of the approved listing content (content assembly, PR #60), and destination routing/review operate on that exact version. This preserves the exact reviewed version for every destination write and keeps the historical record immutable.
+
+**Reason:** Regeneration supersedes the old package version rather than overwriting it, so the review-decision and routing paths must reference a specific version. This is the architecture that Phase I delivered (exact-version content assembly + immutable version history). **Open finding D1/High remains open:** an older APPROVED package can stay approved and routable after regeneration because the bridge supersedes only `status='draft'` and there is no "newer version exists" guard in the review-decision/enqueue RPCs. The "current-version invariant and regeneration safety" fix is planned as **Phase 0 Slice 2** (not yet begun).
+
+## 2026-08-12 — Destination-request correlation/idempotency and supersede semantics
+
+**Decision:** Every destination request carries a correlation identity and the destination outbox enforces idempotent request lifecycle semantics (one durable enqueue per destination intent; lease-protected claims; immutable attempt/ledger records). A later intentional request for a newer package version may create a new request for that version.
+
+**Reason:** Destination writes (Shopify/Etsy/Listings Spreadsheet) are durable outbox operations that must not duplicate on retry or double-click. **Open finding D2/High remains open:** there is no unique constraint on `(environment, package, destination)`, a fresh correlation is minted per submit, and there is no UI pending guard, so double submit can create duplicate destination requests/rows. The deduplication fix is planned as **Phase 0 Slice 3** and must land before automatic processing.
+
+## 2026-08-12 — Destination outbox/lease processing design
+
+**Decision:** All three destination adapters write through the canonical destination routing outbox (PR #65): a durable request with a lifecycle, lease-protected claim (one worker wins the lease), immutable attempts/ledger, error allowlist, and atomic completion. The database write and the remote destination write are never one atomic transaction.
+
+**Reason:** This gives idempotency, retry, and failure visibility for remote destination calls, consistent with the earlier Listings Spreadsheet decision (never claim DB + remote as one transaction). **Open finding C3/High remains open:** there is **no automatic background consumer** — processors are manual server actions today. Automatic workers/retries/queue maintenance are required for launch per owner decision 3 and are not yet implemented.
+
+## 2026-08-12 — Etsy fail-closed configuration
+
+**Decision:** Etsy launches only after its token store and policy source are configured and verified. Until then, the Etsy path remains fail-closed (a create-intent record is made before any remote call; unresolved/needs-confirmation intents park rather than publish). Shopify launches first.
+
+**Reason:** Owner decision 6. The Etsy draft adapter is implemented (PR #68) but is not launch-ready until its external configuration is verified; Etsy stays fail-closed until that verification completes.
+
+## 2026-08-12 — One final canonical GM Commerce system
+
+**Decision:** GM Commerce converges on **one canonical system** as the end state. Legacy functionality is retired only after a dependency-ordered cutover; there is **no premature deletion** of legacy functionality.
+
+**Reason:** Owner decision 1. The legacy pipeline remains the working source pipeline during Phase I and Phase 0; cutover is sequenced (below) so nothing is removed before its canonical replacement is mapped, migrated, and verified.
+
+## 2026-08-12 — Safe legacy cutover sequence
+
+**Decision:** Legacy retirement follows this dependency-ordered sequence: (1) inventory dependencies/capabilities are moved, (2) canonical replacements are mapped, (3) migrate and verify, (4) stop new legacy writes and legacy routing, (5) confirm no canonical dependency remains, then (6) retire legacy runtime paths.
+
+**Reason:** Owner decision 1. Legacy cutover comes **later** — after the required capabilities and dependencies are safely moved. The approved next slices are Phase 0 Slice 2 (current-version invariant/regeneration safety) and Phase 0 Slice 3 (destination-request deduplication), with legacy cutover sequenced after the required capabilities exist.
+
+## 2026-08-12 — Photo architecture: Google Drive human master → Supabase Storage app copies → OneDrive archive
+
+**Decision:** Google Drive is the **human master** for photos; Supabase Storage holds the **application copies/derivatives**; OneDrive is an **independent backup/archive** only.
+
+**Reason:** Owner decision 5. This is the required end-state storage architecture; it is recorded as a decision and remains to be implemented (automatic background/derivative storage work is part of the launch requirements).
+
+## 2026-08-12 — Owner work is limited to initiation, image arrangement, owner-only facts, and final approval
+
+**Decision:** Normal owner work in the workflow is limited to: selecting products, adding/arranging images, supplying genuinely owner-only facts, and approving/rejecting listings. Processing, retries, queue maintenance, and destination creation must be **automatic**; manual Process/Retry actions are an exceptional fallback only.
+
+**Reason:** Owner decision 3. This defines the automatic-processing launch requirement (review finding C3/High) and the fallback-only role of manual processing.
+
+## 2026-08-12 — Recovery order: deterministic automation → constrained AI fresh-eyes → owner escalation
+
+**Decision:** The recovery ladder is: (1) deterministic automation, (2) a constrained AI "fresh-eyes" agent, then (3) owner escalation. Manual recovery is not the first resort.
+
+**Reason:** Owner decision 4. This is the required operational recovery design; the deterministic step (and constrained-AI step) are part of the automatic-processing launch requirements, not yet implemented.
+
+## 2026-08-12 — Shopify launches first; Etsy stays fail-closed until verified
+
+**Decision:** Shopify is the first launch destination. Etsy remains fail-closed until its token store and policy source are configured and verified.
+
+**Reason:** Owner decision 6. Confirmed with the Etsy fail-closed configuration decision above; the Shopify draft-only end-to-end launch verification has not yet been executed.
+
+## 2026-08-12 — Batch processing (Phase 2) is required before launch and requires Phil's design approval
+
+**Decision:** Batch processing is **REQUIRED before launch**, and its behavior is a **mandatory owner-design checkpoint**: it must not be designed or implemented until Phil approves how it should work.
+
+**Reason:** Owner decision 2. This gating is recorded so no contributor begins Phase 2 batch design/implementation before Phil's decision.
+
+## 2026-08-12 — Phase 0 Slice 2 / Slice 3 sequence (current-version invariant, then destination dedup)
+
+**Decision:** The approved next sequence is **Phase 0 Slice 2: current-version invariant and regeneration safety** (finding D1/High), then **Phase 0 Slice 3: destination-request deduplication** (finding D2/High). Legacy cutover comes later, after the required capabilities and dependencies are safely moved (see the safe cutover sequence above).
+
+**Reason:** Owner-confirmed. This replaces any earlier statement that Phase 0 Slice 2 is "legacy cutover" — it is not; legacy cutover is a later, separately sequenced step.
