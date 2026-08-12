@@ -595,7 +595,13 @@ Database-to-external-API atomicity is impossible; authorization is therefore pla
 
 **Decision:** Every destination request carries a correlation identity and the destination outbox enforces idempotent request lifecycle semantics (one durable enqueue per destination intent; lease-protected claims; immutable attempt/ledger records). A later intentional request for a newer package version may create a new request for that version.
 
-**Reason:** Destination writes (Shopify/Etsy/Listings Spreadsheet) are durable outbox operations that must not duplicate on retry or double-click. **Open finding D2/High remains open:** there is no unique constraint on `(environment, package, destination)`, a fresh correlation is minted per submit, and there is no UI pending guard, so double submit can create duplicate destination requests/rows. The deduplication fix is planned as **Phase 0 Slice 3** and must land before automatic processing.
+**Reason:** Destination writes (Shopify/Etsy/Listings Spreadsheet) are durable outbox operations that must not duplicate on retry or double-click. **Finding D2/High (destination-request deduplication) is resolved** by Phase 0 Slice 3 (PR #71, merge `851be71`); see the "Destination-request deduplication is delivery-intent-based" entry below.
+
+## 2026-08-12 — Destination-request deduplication is delivery-intent-based (Phase 0 Slice 3)
+
+**Decision:** Delivery intent is identified independently from the correlation ID: `(environment, commerce_package_id, destination, intended_external_destination, custom_destination_label)`. At most one ACTIVE (pending/processing/needs_confirmation) operational destination request exists per delivery intent, enforced by a partial unique index. Different-correlation duplicate submissions (sequential or concurrent) converge to the existing request; active requests outrank terminal history during convergence; terminal-only history follows the established no-redelivery rule; exact-correlation replay stays idempotent and mismatched correlation reuse fails closed. Correlation IDs remain the replay identity but are not the business deduplication key. Upgrade reconciliation retains the oldest ACTIVE request and records discarded duplicates as terminal `failed`/`duplicate_intent` (distinct from `package_superseded`, which remains reserved for actual package supersession), naming the surviving request in audit metadata. Existing same-row retry and Etsy recreate behavior are preserved; historical requests and events are preserved; superseded packages remain ineligible via Slice 2. **Deliberate redelivery of the same package version to the same destination is not implemented and requires a future explicit owner-authorized mechanism** — it is not invented here.
+
+**Reason:** Phase 0 Slice 3 (PR #71, merge `851be71`, migration `20260817000000_phase0_slice3_destination_dedup.sql`) resolves finding D2/High at the database boundary. Verified: 2211 application tests, migration from empty + upgrade, consolidated schema, dedup race (concurrent and terminal-history), upgrade reconciliation, PR CI, and post-merge CI run `31615866708` (24/24 jobs).
 
 ## 2026-08-12 — Destination outbox/lease processing design
 
@@ -619,7 +625,7 @@ Database-to-external-API atomicity is impossible; authorization is therefore pla
 
 **Decision:** Legacy retirement follows this dependency-ordered sequence: (1) inventory dependencies/capabilities are moved, (2) canonical replacements are mapped, (3) migrate and verify, (4) stop new legacy writes and legacy routing, (5) confirm no canonical dependency remains, then (6) retire legacy runtime paths.
 
-**Reason:** Owner decision 1. Legacy cutover comes **later** — after the required capabilities and dependencies are safely moved. The approved next slices are Phase 0 Slice 2 (current-version invariant/regeneration safety) and Phase 0 Slice 3 (destination-request deduplication), with legacy cutover sequenced after the required capabilities exist.
+**Reason:** Owner decision 1. Legacy cutover comes **later** — after the required capabilities and dependencies are safely moved. Phase 0 Slices 2 and 3 (current-version invariant/regeneration safety and destination-request deduplication) are both completed and merged (PRs #70–#71); legacy cutover is sequenced after the required capabilities exist.
 
 ## 2026-08-12 — Photo architecture: Google Drive human master → Supabase Storage app copies → OneDrive archive
 
@@ -653,6 +659,6 @@ Database-to-external-API atomicity is impossible; authorization is therefore pla
 
 ## 2026-08-12 — Phase 0 Slice 2 / Slice 3 sequence (current-version invariant, then destination dedup)
 
-**Decision:** The approved next sequence is **Phase 0 Slice 2: current-version invariant and regeneration safety** (finding D1/High), then **Phase 0 Slice 3: destination-request deduplication** (finding D2/High). Legacy cutover comes later, after the required capabilities and dependencies are safely moved (see the safe cutover sequence above).
+**Decision:** The approved sequence was **Phase 0 Slice 2: current-version invariant and regeneration safety** (finding D1/High), then **Phase 0 Slice 3: destination-request deduplication** (finding D2/High). **Both are now completed and merged** (PRs #70–#71). Legacy cutover comes later, after the required capabilities and dependencies are safely moved (see the safe cutover sequence above).
 
 **Reason:** Owner-confirmed. This replaces any earlier statement that Phase 0 Slice 2 is "legacy cutover" — it is not; legacy cutover is a later, separately sequenced step.

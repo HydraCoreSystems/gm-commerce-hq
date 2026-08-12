@@ -2,7 +2,7 @@
 
 > Plain-English answer to: **What must be finished before GM Commerce is considered operationally complete?**
 >
-> Owner-facing. Derived strictly from `ROADMAP.md`, `PRODUCT_RESET_2026-08-03.md`, `phase-i-slice-plan.md`, `DECISIONS.md`, and `STATUS.md` — no new capabilities, dates, SourceCategories, Claims, evidence rules, or lifecycle states are invented here. Last updated: 2026-08-12 (Phase I complete through PR #68; Phase 0 Slices 1–2 merged via PRs #69–#70).
+> Owner-facing. Derived strictly from `ROADMAP.md`, `PRODUCT_RESET_2026-08-03.md`, `phase-i-slice-plan.md`, `DECISIONS.md`, and `STATUS.md` — no new capabilities, dates, SourceCategories, Claims, evidence rules, or lifecycle states are invented here. Last updated: 2026-08-12 (Phase I complete through PR #68; Phase 0 Slices 1–3 merged via PRs #69–#71).
 
 ## The finish line in one sentence
 
@@ -41,9 +41,14 @@ GM Commerce is operationally complete when the real product pipeline — select 
 - **Shopify pre-side-effect dispatch authorization** and **Listings Spreadsheet pre-side-effect dispatch authorization** — `gmcom_authorize_destination_dispatch` is called immediately before each external write; the unavoidable database-to-external-API micro-window remains documented (authorization is placed immediately before writes; post-call validation remains defense in depth).
 - **Etsy stays implemented but not launch-active and fail-closed** — Phase 0 Slice 2's generic database protections cover Etsy requests; Etsy application-level pre-side-effect authorization is **intentionally deferred** to the Etsy activation phase (the missing protection is not optional). Resume only when Phil explicitly begins and authorizes Etsy activation. Authoritative technical checklist: `gm-commerce/docs/canonical-etsy-draft.md` §10.
 
+**Phase 0 Slice 3 — destination-request deduplication (PR #71, merge `851be71`, migration `20260817000000_phase0_slice3_destination_dedup.sql`):** at most one ACTIVE operational destination request per delivery intent. Completed and merged; post-merge CI green (run `31615866708`, 24/24 jobs).
+
+- **Destination-request double-submission deduplication** — delivery-intent identity `(environment, commerce_package_id, destination, intended_external_destination, custom_destination_label)`; partial unique index for ACTIVE operational requests; sequential and concurrent duplicate submissions (different correlation IDs included) converge to the existing request; active requests take precedence over terminal history; terminal-only history follows the established no-redelivery rule; exact-correlation replay stays idempotent and mismatched correlation reuse fails closed; superseded packages remain ineligible via Slice 2; Etsy remains inactive and fail-closed; Etsy recreate and same-row retry behavior are preserved.
+- **Upgrade reconciliation** — keeps the oldest ACTIVE request; discarded duplicates become terminal `failed`/`duplicate_intent` (distinct from `package_superseded`, which remains reserved for actual package supersession); the surviving request is recorded in audit metadata. Historical requests and events are preserved. Deliberate redelivery is not implemented and requires a future explicit owner-authorized mechanism.
+
 ## What is true right now (current end state)
 
-- `gm-commerce/main` is at **`9cc5f6a`** (merge of PR #70, Phase 0 Slice 2); post-merge CI green (workflow run **`31605446557`**, 24/24 jobs).
+- `gm-commerce/main` is at **`851be71`** (merge of PR #71, Phase 0 Slice 3); post-merge CI green (workflow run **`31615866708`**, 24/24 jobs).
 - The review shell is populated by **real canonical CommercePackages** (created at generation finalization, assembled with exact-version content and photo references, and displayed in the review shell). The earlier "the review shell has no real CommercePackages" statement no longer holds.
 - Every new `ready_for_ai` product automatically gains canonical identity (I1 + I2). Existing products can be backfilled on demand (I3). Every approved photo set gains permanent canonical PhotoAssets (I4); historically approved photo sets can be backfilled (I5).
 - AI-content Claims are bridged truthfully (`under_review` only, no fabrication). Drift is monitored (read-only, no repair).
@@ -57,7 +62,7 @@ GM Commerce is operationally complete when the real product pipeline — select 
 | # | Remaining launch item | What it is | Status |
 |---|---|---|---|
 | 1 | **Current-version invariant and regeneration safety** | One authoritative current canonical CommercePackage per environment and SKU; deterministic highest-version convergence under concurrent materialization; stale approval/enqueue/claim/retry/success fail closed; nonterminal requests for superseded packages become terminal `failed`/`package_superseded` (review finding D1/High). | **Fixed and merged** (Phase 0 Slice 2, PR #70, `9cc5f6a`). |
-| 2 | **Destination-request deduplication** | Duplicate destination requests on double submit (no unique constraint on `(environment, package, destination)`, fresh correlation per submit, no UI pending guard) (review finding D2/High). | **Not fixed.** Phase 0 Slice 3; **not begun**. Fix before auto-processing. |
+| 2 | **Destination-request deduplication** | At most one ACTIVE operational destination request per delivery intent `(environment, commerce_package_id, destination, intended_external_destination, custom_destination_label)`; sequential and concurrent duplicate submissions converge; upgrade reconciliation records duplicates as `failed`/`duplicate_intent` (review finding D2/High). | **Fixed and merged** (Phase 0 Slice 3, PR #71, `851be71`). |
 | 3 | **Automatic workers, retries, and queue maintenance** | No automatic background consumer exists; processors are manual server actions (review finding C3/High — a product gap). Required for launch per owner decision 3 (processing/retries/queue/destination creation must be automatic). | **Not implemented.** |
 | 4 | **Batch processing (Phase 2)** | REQUIRED before launch. **Mandatory owner-design checkpoint:** must not be designed or implemented until Phil approves how it should work. | **Not begun; design gated on Phil.** |
 | 5 | **Google Drive → Supabase Storage photo architecture** | Google Drive = human master; Supabase Storage = application copies/derivatives; OneDrive = independent backup/archive (owner decision). | **Not implemented.** |
@@ -85,9 +90,9 @@ The owner confirmed (2026-08-09) that the review/publishing workflow must offer 
 
 Three distinct categories:
 
-**1. Implemented but not yet launch-ready.** Phase I is fully implemented (identity, photo, CommercePackage, claims, drift, review decisions, routing, and all three destination adapters). Phase 0 Slice 1 (environment/legacy-access hardening) and Phase 0 Slice 2 (current-version invariant and regeneration safety) are merged. The remaining launch items in the table above are open.
+**1. Implemented but not yet launch-ready.** Phase I is fully implemented (identity, photo, CommercePackage, claims, drift, review decisions, routing, and all three destination adapters). Phase 0 Slices 1–3 (environment/legacy-access hardening; current-version invariant and regeneration safety; destination-request deduplication) are merged. The remaining launch items in the table above are open.
 
-**2. Required launch work (not yet complete):** the eight open items in the "Implemented vs. launch-ready" table above — destination-request deduplication; automatic workers/retries/queue maintenance; batch processing (owner-design gated); Google Drive → Supabase Storage photo architecture; Shopify draft-only launch verification; Etsy configuration and launch readiness (including the deferred pre-side-effect authorization); dependency-safe legacy cutover; the deterministic/AI/owner recovery ladder.
+**2. Required launch work (not yet complete):** the seven open items in the "Implemented vs. launch-ready" table above — automatic workers/retries/queue maintenance; batch processing (owner-design gated); Google Drive → Supabase Storage photo architecture; Shopify draft-only launch verification; Etsy configuration and launch readiness (including the deferred pre-side-effect authorization); dependency-safe legacy cutover; the deterministic/AI/owner recovery ladder.
 
 **3. Genuinely optional enhancements after completion** (each separately authorized; never part of the required finish line): CSV download (backup functionality only); sale and inventory coordination (ROADMAP Milestone 5); public editorial publishing (`PRODUCT_RESET` §17/§18); broader marketing/analytics/automated repricing (ROADMAP "Version 2 and Later"); GMCOM-014 real-export validation.
 
@@ -97,7 +102,7 @@ Three distinct categories:
 
 - **Batch processing (Phase 2):** **mandatory owner-design checkpoint** — must not be designed or implemented until Phil approves how it should work.
 - **Current-version invariant / regeneration safety:** no new owner decision identified; **fixed and merged** in Phase 0 Slice 2 (PR #70, `9cc5f6a`).
-- **Destination-request deduplication:** no new owner decision identified; fix in Phase 0 Slice 3 before auto-processing.
+- **Destination-request deduplication:** no new owner decision identified; **fixed and merged** in Phase 0 Slice 3 (PR #71, `851be71`).
 - **Automatic workers/retries/queue:** owner decision 3 already requires automatic processing; implementation remains.
 - **Legacy cutover:** owner decision — dependency-ordered cutover only, no premature deletion (recorded in `DECISIONS.md`).
 - **Photo storage:** owner decision — Google Drive human master → Supabase Storage app copies/derivatives → OneDrive backup/archive (recorded in `DECISIONS.md`).
@@ -111,7 +116,7 @@ Three distinct categories:
 **Launch readiness (operational launch gate) is met when:**
 
 1. Phase 0 Slice 2 (current-version invariant + regeneration safety) is fixed and merged — **satisfied** (PR #70, `9cc5f6a`).
-2. Phase 0 Slice 3 (destination-request deduplication) is fixed and merged — **not yet started**.
+2. Phase 0 Slice 3 (destination-request deduplication) is fixed and merged — **satisfied** (PR #71, `851be71`).
 3. Automatic background processing (workers, retries, queue maintenance, destination creation) is implemented (owner decision 3).
 4. Batch processing (Phase 2) is designed per Phil's approval and implemented.
 5. Google Drive → Supabase Storage photo architecture is implemented.
@@ -129,13 +134,13 @@ After operational completion there is **no automatic next phase**. The system en
 ## Estimate of remaining required work before launch
 
 - **Phase 0 Slice 2** (current-version invariant + regeneration safety) — **completed and merged** (PR #70, `9cc5f6a`).
-- **Phase 0 Slice 3** (destination-request deduplication) — one implementation slice, not yet begun.
+- **Phase 0 Slice 3** (destination-request deduplication) — **completed and merged** (PR #71, `851be71`).
 - **Automatic background processing** — one implementation slice (launch requirement, owner decision 3).
 - **Batch processing (Phase 2)** — REQUIRED before launch, **gated on Phil's design approval**.
 - **Google Drive → Supabase Storage photo architecture** — one implementation slice.
 - **Shopify draft-only end-to-end launch verification** — a verification/launch-gate activity, not a new feature.
 - **Etsy configuration + verification** — a configuration/verification activity on the implemented adapter.
-- **Dependency-safe legacy cutover** — a later, separately sequenced cutover (not Phase 0 Slice 2).
+- **Dependency-safe legacy cutover** — a later, separately sequenced cutover (not Phase 0 Slice 3).
 - **Recovery ladder** — part of the automatic-processing/launch hardening work.
 
-The exact slice count can change as Phase 0 Slice 3 is planned; this is an estimate, not a commitment.
+The exact slice count can change as the remaining launch work is planned; this is an estimate, not a commitment.

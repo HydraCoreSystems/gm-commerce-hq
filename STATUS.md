@@ -1,6 +1,6 @@
 # Current Project Status
 
-_Last updated: 2026-08-12 (Phase I completed through PR #68; Phase 0 Slices 1–2 merged via PRs #69–#70)_
+_Last updated: 2026-08-12 (Phase I completed through PR #68; Phase 0 Slices 1–3 merged via PRs #69–#71)_
 
 ## Phase I — Legacy-to-Canonical Bridge (complete: I1–I5, CommercePackage, claims, drift, routing, and the three destination adapters all delivered and merged through PR #68)
 
@@ -8,9 +8,9 @@ Phase I bridges the real, working production pipeline (GMCOM-001–012) into the
 
 **Phase I is complete as implemented:** every slice in the plan is delivered and merged — the identity backbone (I1–I3), the approved-photo bridge (I4), the historical approved-photo backfill (I5, PR #58), canonical CommercePackage creation (PR #59), content assembly (PR #60), truthful claims mapping + field lineage (PR #61), drift monitoring/reconciliation hardening (PR #62), the review-shell display of assembled packages (PR #63), atomic canonical review decisions (PR #64), canonical destination routing/outbox (PR #65), and the three destination adapters — Listings Spreadsheet (PR #66), Shopify draft (PR #67), and Etsy draft (PR #68).
 
-**"Implemented" is not the same as "launch-ready."** The adapters exist and are live-tested against Postgres, but the operational launch conditions are still open: automatic background processing is not yet complete (workers are manual server actions today), the destination-request deduplication finding from Phase 0 review is not yet fixed (Phase 0 Slice 3), Shopify draft-only end-to-end launch verification has not been executed, Etsy remains fail-closed until its token store and policy source are configured and verified (its application-level pre-side-effect authorization is deferred to the Etsy activation phase), and legacy cutover has not begun. See `COMPLETION.md` and the Phase 0 section below.
+**"Implemented" is not the same as "launch-ready."** The adapters exist and are live-tested against Postgres, but the operational launch conditions are still open: automatic background processing is not yet complete (workers are manual server actions today), Shopify draft-only end-to-end launch verification has not been executed, Etsy remains fail-closed until its token store and policy source are configured and verified (its application-level pre-side-effect authorization is deferred to the Etsy activation phase), and legacy cutover has not begun. See `COMPLETION.md` and the Phase 0 section below.
 
-`gm-commerce/main` is at `9cc5f6a874e251c1ff882ee9d5b8a1b7c84e9616` (merge of PR #70 / Phase 0 Slice 2).
+`gm-commerce/main` is at `851be71820c840dce5bbda3108622b6b66dd60cc` (merge of PR #71 / Phase 0 Slice 3).
 
 | Slice | Scope | PR | Status | Merge |
 |---|---|---|---|---|
@@ -44,19 +44,24 @@ I3 delivered: existing eligible legacy products can be backfilled into canonical
 
 > Post-merge CI for Phase 0 Slice 2 (merged `main` at `9cc5f6a`, run `31605446557`): **success, 24/24 jobs** (0 failed, 0 cancelled, 0 skipped).
 
-## Phase 0 — Launch hardening (Slices 1–2 delivered and merged via PRs #69–#70; Slice 3 planned, not begun)
+> Post-merge CI for Phase 0 Slice 3 (merged `main` at `851be71`, run `31615866708`): **success, 24/24 jobs** (0 failed, 0 cancelled, 0 skipped).
+
+## Phase 0 — Launch hardening (Slices 1–3 delivered and merged via PRs #69–#71; Phase 0 complete)
 
 **Phase 0 Slice 1 — Environment and legacy-access hardening (PR #69, merge `c6cf6c8`, migration `20260812120000_phase0_slice1_environment_and_legacy_access_hardening.sql`):** removed every hardcoded/defaulted `'production'` from the legacy→canonical bridge and the legacy-writing RPCs; every such RPC now takes a **required** environment argument and sets the `app.gmcom_caller_environment` GUC transaction-locally, and the dual-write triggers fail closed when no environment is set (`gmcom_set_legacy_bridge_environment` / `gmcom_require_active_environment`). The unused 8-arg `gmcom_apply_legacy_correction` overload was dropped. The legacy tables (`products`, `listing_packages`, `listing_package_versions`, `photo_*`, `shopify_publications`, `commerce_details`) gained RLS with `anon`/`authenticated` revoked and explicit `service_role` grants. TS wrappers thread `resolveTrustedEnvironment()`. **Does not retire legacy functionality** and does not touch current-version logic, destination dedup, automation, batch, or photo architecture.
 
-**Phase 0 Slice 2 — Current-version invariant and regeneration safety (PR #70, merge `9cc5f6a`, migration `20260816000000_phase0_slice2_current_version_safety.sql`):** one authoritative current canonical CommercePackage per environment and SKU, with deterministic highest-version convergence. Materialization is serialized per (environment, SKU) by locking the parent `canonical_skus` row (lock order `canonical_skus → canonical_commerce_packages → canonical_destination_requests`), and the partial unique index `canonical_commerce_packages_one_current_per_sku_env` is retained as defense in depth. Higher versions atomically supersede older current packages; lower versions remain historical/`superseded`; equal-version bridge replay is idempotent; the previous package stays authoritative until its replacement successfully materializes. Stale approval, enqueue, claim, retry, and success paths fail closed; nonterminal requests for superseded packages become terminal `failed`/`package_superseded`; historical packages, decisions, requests, and audit events are preserved. Shopify and Listings Spreadsheet now reauthorize immediately before external writes; the unavoidable database-to-external-API micro-window remains documented. Environment isolation is preserved. **Phase 0 Slice 3 has not begun.**
+**Phase 0 Slice 2 — Current-version invariant and regeneration safety (PR #70, merge `9cc5f6a`, migration `20260816000000_phase0_slice2_current_version_safety.sql`):** one authoritative current canonical CommercePackage per environment and SKU, with deterministic highest-version convergence. Materialization is serialized per (environment, SKU) by locking the parent `canonical_skus` row (lock order `canonical_skus → canonical_commerce_packages → canonical_destination_requests`), and the partial unique index `canonical_commerce_packages_one_current_per_sku_env` is retained as defense in depth. Higher versions atomically supersede older current packages; lower versions remain historical/`superseded`; equal-version bridge replay is idempotent; the previous package stays authoritative until its replacement successfully materializes. Stale approval, enqueue, claim, retry, and success paths fail closed; nonterminal requests for superseded packages become terminal `failed`/`package_superseded`; historical packages, decisions, requests, and audit events are preserved. Shopify and Listings Spreadsheet now reauthorize immediately before external writes; the unavoidable database-to-external-API micro-window remains documented. Environment isolation is preserved.
 
 **Verification:** 2204 application tests passed locally; migration from empty and upgrade passed; consolidated schema passed; materialization race verification passed; PR CI passed; post-merge CI run `31605446557` passed 24/24 jobs.
 
 **Etsy deferral (Phase 0 Slice 2):** Etsy is implemented but **not** launch-active; it remains fail-closed. Shopify launches first. Phase 0 Slice 2's generic database protections cover Etsy requests at the database boundary. Etsy application-level pre-side-effect dispatch authorization is **intentionally deferred** to the Etsy activation phase — the missing protection is not optional. Resume it only when Phil explicitly begins and authorizes Etsy activation. The authoritative technical checklist is `gm-commerce/docs/canonical-etsy-draft.md` §10 (authorization immediately before `createDraftListing`, `updateListingInventory`, and every `uploadListingImage` inside the image loop, plus credentials/token store, shop identity, taxonomy, shipping/profile, inventory/variation, image, and listing-policy prerequisites, draft-only end-to-end verification, partial-external-side-effect recovery verification, and Phil's explicit activation authorization).
 
+**Phase 0 Slice 3 — Destination-request deduplication (PR #71, merge `851be71`, migration `20260817000000_phase0_slice3_destination_dedup.sql`):** at most one ACTIVE operational destination request per delivery intent `(environment, commerce_package_id, destination, intended_external_destination, custom_destination_label)`, enforced by the partial unique index `canonical_destination_requests_one_active_per_delivery_intent`. Sequential and concurrent duplicate submissions — including different correlation IDs — converge to the existing request; active requests take precedence over terminal history; terminal-only history follows the established no-redelivery rule; exact-correlation replay remains idempotent and mismatched correlation reuse fails closed. The upgrade reconciliation retains the oldest ACTIVE request and records discarded duplicates as terminal `failed`/`duplicate_intent` (distinct from `package_superseded`, which remains reserved for actual package supersession), with the surviving request named in audit metadata. Existing same-row retry and Etsy recreate behavior are preserved; historical requests and events are preserved; superseded packages remain ineligible via Slice 2; deliberate redelivery is not implemented and requires a future explicit owner-authorized mechanism. Lock order unchanged: `canonical_skus → canonical_commerce_packages → canonical_destination_requests`. Etsy remains inactive and fail-closed. **Phase 0 Slices 1–3 are complete.**
+
+**Verification:** 2211 application tests passed locally; migration from empty and upgrade passed; consolidated schema passed; dedup race (concurrent different-correlation and terminal-history scenarios) passed; dedup upgrade reconciliation passed; PR CI passed; post-merge CI run `31615866708` passed 24/24 jobs.
+
 **Approved next sequence (owner-confirmed):**
 
-- **Phase 0 Slice 3 — destination-request deduplication** (review finding D2/High): duplicate destination requests on double submit (no unique constraint on `(environment, package, destination)`, fresh correlation per submit, no UI pending guard). Fix before auto-processing.
 - **Legacy cutover** comes later, after the required capabilities and dependencies are safely moved (see the safe cutover sequence in `DECISIONS.md` and `COMPLETION.md`).
 - **Automatic background processing** (review finding C3/High — no automatic consumer; processors are manual server actions) is a launch requirement per owner decision 3, and is not yet implemented.
 - **Batch processing (Phase 2) is REQUIRED before launch but is a mandatory owner-design checkpoint:** it must not be designed or implemented until Phil approves how it should work.
@@ -123,7 +128,7 @@ See `phase-f-slice-plan.md` for per-slice scope, acceptance criteria, and exclus
 
 ## Schema State
 
-- **51 ordered migrations** now apply cleanly from empty (CI `schema-from-empty` passes), and the consolidated `schema.sql` mirror builds an equivalent fresh database (verified on merged `main` at `9cc5f6a`).
+- **52 ordered migrations** now apply cleanly from empty (CI `schema-from-empty` passes), and the consolidated `schema.sql` mirror builds an equivalent fresh database (verified on merged `main` at `9cc5f6a`).
 - I1 (PR #54, `2c26b61`): `canonical_legacy_entity_bridge` + `gmcom_bridge_product_identity`.
 - I2 (PR #55, `bef5a5d`): `canonical_legacy_bridge_jobs` + immutable `canonical_legacy_bridge_job_attempts` + `gmcom_mark_product_ready_for_ai`/`gmcom_enqueue_legacy_bridge_job`/`gmcom_claim_legacy_bridge_job`/`gmcom_finish_legacy_bridge_job`.
 - I3 (PR #56, `285a2a0`): redefined `gmcom_bridge_product_identity` (four-status allowlist) + `canonical_legacy_backfill_runs` + immutable `canonical_legacy_backfill_row_outcomes` + dry-run→real-run single-use linkage + backfill RPCs.
@@ -140,6 +145,7 @@ See `phase-f-slice-plan.md` for per-slice scope, acceptance criteria, and exclus
 - Etsy draft adapter (PR #68, `f6e24bb`): `20260815000000_phase_i_canonical_etsy_draft_adapter.sql`.
 - Phase 0 Slice 1 (PR #69, `c6cf6c8`): `20260812120000_phase0_slice1_environment_and_legacy_access_hardening.sql` — environment helpers, hardened dual-write triggers and legacy RPCs, legacy-table RLS/grants.
 - Phase 0 Slice 2 (PR #70, `9cc5f6a`): `20260816000000_phase0_slice2_current_version_safety.sql` — current-version authority (parent `canonical_skus` serialization, partial unique index as defense in depth), supersede/reconcile on new current versions, terminal `failed`/`package_superseded` reconciliation, dispatch authorization (`gmcom_authorize_destination_dispatch`) for Shopify and Listings Spreadsheet, and regeneration authority-transfer safety.
+- Phase 0 Slice 3 (PR #71, `851be71`): `20260817000000_phase0_slice3_destination_dedup.sql` — delivery-intent-based destination-request deduplication (partial unique index on `(environment, commerce_package_id, destination, intended_external_destination, custom_destination_label)` for ACTIVE operational requests), sequential/concurrent convergence, active-first selection, `failed`/`duplicate_intent` upgrade reconciliation naming the surviving request, and enqueue convergence preserving exact-correlation replay.
 - Migration gap resolved: `commerce_details` table and `listing_packages.seo_title`/`seo_description` columns have committed DDL at `20260802040000_commerce_readiness.sql`.
 - `20260803000000_commerce_field_ownership.sql` (price/`content_provenance`) was deliberately retired as never-applied.
 - `HY-LOB01-C04` test data verified absent from the live database (2026-08-05).
@@ -167,9 +173,10 @@ Supabase project: `wcrcllhvgbhykbonopzx` (separate co-owner account).
 
 ## Active Work
 
-- **Phase I is complete through PR #68** (I1–I5, CommercePackage creation/assembly/claims, drift, review decisions, routing outbox, and the Shopify/Etsy/Listings-Spreadsheet adapters). The review shell is populated by real canonical CommercePackages; the three destination choices are implemented. **Implemented ≠ launch-ready**: see the Phase 0 section for the launch conditions still open (auto-processing, D2 dedup fix in Phase 0 Slice 3, Shopify launch verification, Etsy fail-closed configuration + deferred pre-side-effect authorization, legacy cutover).
+- **Phase I is complete through PR #68** (I1–I5, CommercePackage creation/assembly/claims, drift, review decisions, routing outbox, and the Shopify/Etsy/Listings-Spreadsheet adapters). The review shell is populated by real canonical CommercePackages; the three destination choices are implemented. **Implemented ≠ launch-ready**: see the Phase 0 section for the launch conditions still open (auto-processing, Shopify launch verification, Etsy fail-closed configuration + deferred pre-side-effect authorization, legacy cutover).
 - **Phase 0 Slice 1 merged (PR #69, `c6cf6c8`)** — environment and legacy-access hardening delivered and post-merge CI green (run `31565668557`, 24/24 jobs, with the documented deferred-drift skip for `schema-drift-deferred`).
 - **Phase 0 Slice 2 merged (PR #70, `9cc5f6a`)** — current-version invariant and regeneration safety delivered and post-merge CI green (run `31605446557`, 24/24 jobs). Etsy application-level pre-side-effect authorization is intentionally deferred to the Etsy activation phase.
+- **Phase 0 Slice 3 merged (PR #71, `851be71`)** — destination-request deduplication delivered and post-merge CI green (run `31615866708`, 24/24 jobs).
 - **Phase H is COMPLETE** (H1–H8 + Phase E/F/G prerequisite corrections, merged at `c65b023` per PR #53). No further Phase H slices are proposed.
 - **Owner-confirmed output requirement (2026-08-09):** the review/publishing workflow must offer **Shopify, Etsy, and a permanent master Listings Spreadsheet** as **mandatory operational destination choices**. **For each approved listing, Phil or Crystal chooses the intended route; a listing is not required to be sent to all three destinations simultaneously.** Etsy is required for overall GM Commerce completion (ROADMAP Milestone 4, now classified as required). The Listings Spreadsheet is append-only and idempotent, written through a **durable export job/outbox with an immutable export ledger** (never claimed atomic with the database), configured from trusted server credentials only, and is **not** a per-listing downloadable file (CSV download is optional backup only). All three adapters are now **implemented** (PRs #66–#68); launch readiness is still pending (Etsy fail-closed until its token store and policy source are configured and verified; Shopify draft-only end-to-end launch verification not yet executed; automatic background processing not yet complete).
 - **GitHub Issues**: Several tasks lack formal Issues. GitHub API access has been intermittent. Issue #46 remains open (see Schema State).
@@ -182,15 +189,15 @@ Supabase project: `wcrcllhvgbhykbonopzx` (separate co-owner account).
 
 ## Next Phase
 
-**Phase 0 — Launch hardening.** Slices 1–2 (PRs #69–#70, `c6cf6c8` and `9cc5f6a`) are merged. **Phase 0 Slice 3 (destination-request deduplication) is approved to plan and implement next and has not begun.** Legacy cutover comes later, after required capabilities and dependencies are safely moved. **Phase 2 batch behavior is a mandatory owner-design checkpoint and must not be designed or implemented until Phil approves how it should work.** See `COMPLETION.md` for the finish-line map and the remaining launch conditions.
+**Phase 0 — Launch hardening.** Slices 1–3 (PRs #69–#71, `c6cf6c8`, `9cc5f6a`, `851be71`) are merged; **Phase 0 Slices 1–3 are complete.** The next implementation work is automatic background processing and the remaining launch conditions in `COMPLETION.md`; legacy cutover comes later, after required capabilities and dependencies are safely moved. **Phase 2 batch behavior is a mandatory owner-design checkpoint and must not be designed or implemented until Phil approves how it should work.**
 
 ## AI Capacity
 
 | Contributor | Role | Capacity | Current assignment |
 |---|---|---|---|
 | ChatGPT | Project manager / coordinator | Available | HQ status/plan documentation |
-| Claude | Primary coordination + implementation + review | Available | Phase I complete (PRs #54–#68); Phase 0 Slice 1 (PR #69) and Phase 0 Slice 2 (PR #70) delivered; Phase 0 Slice 3 pending authorization |
+| Claude | Primary coordination + implementation + review | Available | Phase I complete (PRs #54–#68); Phase 0 Slices 1–3 (PRs #69–#71) delivered; next implementation slice pending authorization |
 | GitHub Copilot | Implementation contributor | Quota-limited | Phase I bridge foundation (I1) |
-| Phil | Product owner | Available as schedule permits | Phase 0 Slice 3 authorization; Phase 2 batch design decision |
+| Phil | Product owner | Available as schedule permits | Next implementation slice authorization; Phase 2 batch design decision |
 
 Capacity status should be updated whenever a provider limit is reached or resets.
