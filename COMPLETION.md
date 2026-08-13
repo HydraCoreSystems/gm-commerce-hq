@@ -2,7 +2,7 @@
 
 > Plain-English answer to: **What must be finished before GM Commerce is considered operationally complete?**
 >
-> Owner-facing. Derived strictly from `ROADMAP.md`, `PRODUCT_RESET_2026-08-03.md`, `phase-i-slice-plan.md`, `DECISIONS.md`, and `STATUS.md` — no new capabilities, dates, SourceCategories, Claims, evidence rules, or lifecycle states are invented here. Last updated: 2026-08-12 (Phase I complete through PR #68; Phase 0 Slices 1–3 merged via PRs #69–#71).
+> Owner-facing. Derived strictly from `ROADMAP.md`, `PRODUCT_RESET_2026-08-03.md`, `phase-i-slice-plan.md`, `DECISIONS.md`, and `STATUS.md` — no new capabilities, dates, SourceCategories, Claims, evidence rules, or lifecycle states are invented here. Last updated: 2026-08-13 (Phase I complete through PR #68; Phase 0 Slices 1–3 merged via PRs #69–#71; Recovery Foundation Slice 1 merged via PR #72).
 
 ## The finish line in one sentence
 
@@ -46,9 +46,23 @@ GM Commerce is operationally complete when the real product pipeline — select 
 - **Destination-request double-submission deduplication** — delivery-intent identity `(environment, commerce_package_id, destination, intended_external_destination, custom_destination_label)`; partial unique index for ACTIVE operational requests; sequential and concurrent duplicate submissions (different correlation IDs included) converge to the existing request; active requests take precedence over terminal history; terminal-only history follows the established no-redelivery rule; exact-correlation replay stays idempotent and mismatched correlation reuse fails closed; superseded packages remain ineligible via Slice 2; Etsy remains inactive and fail-closed; Etsy recreate and same-row retry behavior are preserved.
 - **Upgrade reconciliation** — keeps the oldest ACTIVE request; discarded duplicates become terminal `failed`/`duplicate_intent` (distinct from `package_superseded`, which remains reserved for actual package supersession); the surviving request is recorded in audit metadata. Historical requests and events are preserved. Deliberate redelivery is not implemented and requires a future explicit owner-authorized mechanism.
 
+**Recovery Foundation Slice 1 — retry limits and queue health (PR #72, merge `2f12de4`, migration `20260818000000_recovery_foundation_slice1.sql`):** the database/observability foundation required before automatic processing. **Recovery Foundation Slice 1 is complete** (it is a Recovery Foundation slice, not a Phase 0 slice). Post-merge CI green (run `31662919875`, 24/24 jobs).
+
+- **Database-enforced five-attempt maximum** — `attempt_count` counts processing leases issued; attempts 1–5 may execute and the **fifth attempt may run and succeed**; a due or expired request at the attempt limit is terminally failed with `max_attempts_exceeded` at the claim boundary (`gmcom_claim_destination_requests`) and **a sixth lease is denied**. Terminalization is idempotent and concurrency-safe.
+- **Terminalization precedence** — `package_superseded` → `snapshot_mismatch` → `max_attempts_exceeded`; currentness/snapshot failures retain their truthful codes.
+- **Retry/backoff** — default backoff **60/300/900/3600 seconds, capped at 3600**; explicit provider **`Retry-After` takes precedence**; `rate_limited` and `max_attempts_exceeded` are approved error codes (`max_attempts_exceeded` is written only by the claim boundary).
+- **`worker_runs`** worker lifecycle audit ledger (begin/finalize; finalized runs cannot be rewritten; service-role only; environment-isolated).
+- **`gmcom_destination_queue_health`** — read-only, environment-scoped queue-health visibility.
+- **Manual processing controls remain the operational fallback**; they use the same claim RPC and cannot bypass the database maximum.
+- **No scheduler or continuously running worker is implemented yet; Scheduled Worker Slice 2 has not begun.** The intended worker host is **Phil's UPS-backed Linux computer** with a dedicated systemd service/timer isolated from the self-hosted GitHub Actions runner (Vercel is not the selected host; GitHub Actions remains CI-only).
+- **Etsy remains implemented but inactive and fail-closed**; this slice does not activate it.
+- **Phase 2 batch processing remains a mandatory Phil design/approval checkpoint.**
+
+**Recovery Foundation safeguards delivered by this slice are COMPLETE** (maximum-attempt enforcement, retry/backoff policy, worker-run ledger, queue health). The following remain **unresolved**: automatic background processing / scheduler deployment / production worker-host setup, worker recovery and monitoring verification, Etsy activation, photo architecture, batch processing, Shopify launch verification, legacy cutover, and the later recovery-ladder work.
+
 ## What is true right now (current end state)
 
-- `gm-commerce/main` is at **`851be71`** (merge of PR #71, Phase 0 Slice 3); post-merge CI green (workflow run **`31615866708`**, 24/24 jobs).
+- `gm-commerce/main` is at **`2f12de4`** (merge of PR #72, Recovery Foundation Slice 1); post-merge CI green (workflow run **`31662919875`**, 24/24 jobs).
 - The review shell is populated by **real canonical CommercePackages** (created at generation finalization, assembled with exact-version content and photo references, and displayed in the review shell). The earlier "the review shell has no real CommercePackages" statement no longer holds.
 - Every new `ready_for_ai` product automatically gains canonical identity (I1 + I2). Existing products can be backfilled on demand (I3). Every approved photo set gains permanent canonical PhotoAssets (I4); historically approved photo sets can be backfilled (I5).
 - AI-content Claims are bridged truthfully (`under_review` only, no fabrication). Drift is monitored (read-only, no repair).
@@ -63,7 +77,7 @@ GM Commerce is operationally complete when the real product pipeline — select 
 |---|---|---|---|
 | 1 | **Current-version invariant and regeneration safety** | One authoritative current canonical CommercePackage per environment and SKU; deterministic highest-version convergence under concurrent materialization; stale approval/enqueue/claim/retry/success fail closed; nonterminal requests for superseded packages become terminal `failed`/`package_superseded` (review finding D1/High). | **Fixed and merged** (Phase 0 Slice 2, PR #70, `9cc5f6a`). |
 | 2 | **Destination-request deduplication** | At most one ACTIVE operational destination request per delivery intent `(environment, commerce_package_id, destination, intended_external_destination, custom_destination_label)`; sequential and concurrent duplicate submissions converge; upgrade reconciliation records duplicates as `failed`/`duplicate_intent` (review finding D2/High). | **Fixed and merged** (Phase 0 Slice 3, PR #71, `851be71`). |
-| 3 | **Automatic workers, retries, and queue maintenance** | No automatic background consumer exists; processors are manual server actions (review finding C3/High — a product gap). Required for launch per owner decision 3 (processing/retries/queue/destination creation must be automatic). | **Not implemented.** |
+| 3 | **Automatic workers, retries, and queue maintenance** | No automatic background consumer exists; processors are manual server actions (review finding C3/High — a product gap). Required for launch per owner decision 3 (processing/retries/queue/destination creation must be automatic). Recovery Foundation Slice 1 (PR #72) delivered the database enforcement points, worker-run ledger, and queue-health visibility, but **no scheduler or continuously running worker is implemented yet**. | **Database foundation complete (Recovery Foundation Slice 1, PR #72, `2f12de4`); scheduled worker NOT implemented (Scheduled Worker Slice 2 not begun).** |
 | 4 | **Batch processing (Phase 2)** | REQUIRED before launch. **Mandatory owner-design checkpoint:** must not be designed or implemented until Phil approves how it should work. | **Not begun; design gated on Phil.** |
 | 5 | **Google Drive → Supabase Storage photo architecture** | Google Drive = human master; Supabase Storage = application copies/derivatives; OneDrive = independent backup/archive (owner decision). | **Not implemented.** |
 | 6 | **Shopify draft-only end-to-end launch verification** | Shopify launches first; a draft-only end-to-end launch verification against the real store has not been executed as the launch gate. | **Not executed.** |
@@ -90,7 +104,7 @@ The owner confirmed (2026-08-09) that the review/publishing workflow must offer 
 
 Three distinct categories:
 
-**1. Implemented but not yet launch-ready.** Phase I is fully implemented (identity, photo, CommercePackage, claims, drift, review decisions, routing, and all three destination adapters). Phase 0 Slices 1–3 (environment/legacy-access hardening; current-version invariant and regeneration safety; destination-request deduplication) are merged. The remaining launch items in the table above are open.
+**1. Implemented but not yet launch-ready.** Phase I is fully implemented (identity, photo, CommercePackage, claims, drift, review decisions, routing, and all three destination adapters). Phase 0 Slices 1–3 (environment/legacy-access hardening; current-version invariant and regeneration safety; destination-request deduplication) are merged. **Recovery Foundation Slice 1** (PR #72, `2f12de4`) is merged — its database/observability safeguards are complete, but no scheduler or continuously running worker is implemented. The remaining launch items in the table above are open.
 
 **2. Required launch work (not yet complete):** the seven open items in the "Implemented vs. launch-ready" table above — automatic workers/retries/queue maintenance; batch processing (owner-design gated); Google Drive → Supabase Storage photo architecture; Shopify draft-only launch verification; Etsy configuration and launch readiness (including the deferred pre-side-effect authorization); dependency-safe legacy cutover; the deterministic/AI/owner recovery ladder.
 
@@ -103,7 +117,9 @@ Three distinct categories:
 - **Batch processing (Phase 2):** **mandatory owner-design checkpoint** — must not be designed or implemented until Phil approves how it should work.
 - **Current-version invariant / regeneration safety:** no new owner decision identified; **fixed and merged** in Phase 0 Slice 2 (PR #70, `9cc5f6a`).
 - **Destination-request deduplication:** no new owner decision identified; **fixed and merged** in Phase 0 Slice 3 (PR #71, `851be71`).
-- **Automatic workers/retries/queue:** owner decision 3 already requires automatic processing; implementation remains.
+- **Recovery Foundation safeguards:** database-enforced maximum attempts, Retry-After precedence + capped default backoff, `worker_runs` and queue-health observability — **delivered and merged** in Recovery Foundation Slice 1 (PR #72, `2f12de4`).
+- **Automatic workers/retries/queue:** owner decision 3 already requires automatic processing; the database enforcement points and observability are in place (Recovery Foundation Slice 1); the scheduled worker implementation remains (Scheduled Worker Slice 2).
+- **Worker host:** the selected worker host is **Phil's UPS-backed home Linux computer** with a dedicated systemd service/timer, isolated from GitHub's self-hosted CI runner (recorded in `DECISIONS.md`). Vercel is not the selected host.
 - **Legacy cutover:** owner decision — dependency-ordered cutover only, no premature deletion (recorded in `DECISIONS.md`).
 - **Photo storage:** owner decision — Google Drive human master → Supabase Storage app copies/derivatives → OneDrive backup/archive (recorded in `DECISIONS.md`).
 - **Etsy launch:** owner decision — Etsy stays fail-closed until token store + policy source are configured and verified.
@@ -117,7 +133,7 @@ Three distinct categories:
 
 1. Phase 0 Slice 2 (current-version invariant + regeneration safety) is fixed and merged — **satisfied** (PR #70, `9cc5f6a`).
 2. Phase 0 Slice 3 (destination-request deduplication) is fixed and merged — **satisfied** (PR #71, `851be71`).
-3. Automatic background processing (workers, retries, queue maintenance, destination creation) is implemented (owner decision 3).
+3. Automatic background processing (workers, retries, queue maintenance, destination creation) is implemented (owner decision 3). Recovery Foundation Slice 1 (PR #72, `2f12de4`) delivered the database enforcement points, worker-run ledger, and queue health; the scheduled worker itself (Scheduled Worker Slice 2) is not yet implemented.
 4. Batch processing (Phase 2) is designed per Phil's approval and implemented.
 5. Google Drive → Supabase Storage photo architecture is implemented.
 6. Shopify draft-only end-to-end launch verification passes (Shopify launches first).
@@ -135,7 +151,8 @@ After operational completion there is **no automatic next phase**. The system en
 
 - **Phase 0 Slice 2** (current-version invariant + regeneration safety) — **completed and merged** (PR #70, `9cc5f6a`).
 - **Phase 0 Slice 3** (destination-request deduplication) — **completed and merged** (PR #71, `851be71`).
-- **Automatic background processing** — one implementation slice (launch requirement, owner decision 3).
+- **Recovery Foundation Slice 1** (retry limits + queue health) — **completed and merged** (PR #72, `2f12de4`).
+- **Automatic background processing** — the database/observability foundation is delivered (Recovery Foundation Slice 1); the scheduled worker implementation is **Scheduled Worker Slice 2**, not yet begun (launch requirement, owner decision 3; intended host is Phil's UPS-backed Linux computer with a dedicated systemd service isolated from the self-hosted runner).
 - **Batch processing (Phase 2)** — REQUIRED before launch, **gated on Phil's design approval**.
 - **Google Drive → Supabase Storage photo architecture** — one implementation slice.
 - **Shopify draft-only end-to-end launch verification** — a verification/launch-gate activity, not a new feature.

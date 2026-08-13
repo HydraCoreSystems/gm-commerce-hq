@@ -1,6 +1,6 @@
 # Current Project Status
 
-_Last updated: 2026-08-12 (Phase I completed through PR #68; Phase 0 Slices 1–3 merged via PRs #69–#71)_
+_Last updated: 2026-08-13 (Phase I completed through PR #68; Phase 0 Slices 1–3 merged via PRs #69–#71; Recovery Foundation Slice 1 merged via PR #72)_
 
 ## Phase I — Legacy-to-Canonical Bridge (complete: I1–I5, CommercePackage, claims, drift, routing, and the three destination adapters all delivered and merged through PR #68)
 
@@ -10,7 +10,7 @@ Phase I bridges the real, working production pipeline (GMCOM-001–012) into the
 
 **"Implemented" is not the same as "launch-ready."** The adapters exist and are live-tested against Postgres, but the operational launch conditions are still open: automatic background processing is not yet complete (workers are manual server actions today), Shopify draft-only end-to-end launch verification has not been executed, Etsy remains fail-closed until its token store and policy source are configured and verified (its application-level pre-side-effect authorization is deferred to the Etsy activation phase), and legacy cutover has not begun. See `COMPLETION.md` and the Phase 0 section below.
 
-`gm-commerce/main` is at `851be71820c840dce5bbda3108622b6b66dd60cc` (merge of PR #71 / Phase 0 Slice 3).
+`gm-commerce/main` is at `2f12de4935d9d7049ce01896f1adc4036bb577b4` (merge of PR #72 / Recovery Foundation Slice 1).
 
 | Slice | Scope | PR | Status | Merge |
 |---|---|---|---|---|
@@ -45,6 +45,24 @@ I3 delivered: existing eligible legacy products can be backfilled into canonical
 > Post-merge CI for Phase 0 Slice 2 (merged `main` at `9cc5f6a`, run `31605446557`): **success, 24/24 jobs** (0 failed, 0 cancelled, 0 skipped).
 
 > Post-merge CI for Phase 0 Slice 3 (merged `main` at `851be71`, run `31615866708`): **success, 24/24 jobs** (0 failed, 0 cancelled, 0 skipped).
+
+> Post-merge CI for Recovery Foundation Slice 1 (merged `main` at `2f12de4`, run `31662919875`): **success, 24/24 jobs** (0 failed, 0 cancelled, 0 skipped).
+
+## Recovery Foundation Slice 1 — retry limits and queue health (PR #72, merge `2f12de4`, migration `20260818000000_recovery_foundation_slice1.sql`)
+
+**Recovery Foundation Slice 1 is complete.** It is a **Recovery Foundation** slice, **not a Phase 0 slice** (Phase 0 ended with Slice 3). It is the database and observability foundation required before any automatic processing; **no scheduler, continuously running worker, notifications, or AI recovery are implemented here.**
+
+- **Database-enforced maximum attempts:** `attempt_count` on a destination request counts processing **leases issued**. Five processing attempts are allowed; the **fifth attempt may run and succeed**. A request at the attempt limit is terminally failed with `max_attempts_exceeded` at the database claim boundary (`gmcom_claim_destination_requests`) and **a sixth lease is denied**.
+- **Terminalization precedence:** `package_superseded` → `snapshot_mismatch` → `max_attempts_exceeded`. Currentness and snapshot revalidation run first, so their truthful error codes are never relabeled.
+- **Retry/backoff:** default backoff is **60, 300, 900, and 3600 seconds, capped at 3600**; an explicit provider **`Retry-After` takes precedence** over the default backoff. `rate_limited` (retryable) and `max_attempts_exceeded` (terminal, written only by the claim boundary) are approved error codes.
+- **`worker_runs`** provides the worker-run lifecycle audit ledger (begin/finalize; a finalized run cannot be rewritten; service-role only; environment-isolated).
+- **`gmcom_destination_queue_health`** provides read-only, environment-scoped queue-health visibility.
+- **Manual processing controls remain the operational fallback**; they use the same claim RPC and cannot bypass the database maximum.
+- **Scheduled Worker Slice 2 has not begun.** The intended worker host is **Phil's UPS-backed Linux computer**, using a **dedicated systemd service/timer isolated from the self-hosted GitHub Actions runner**. **Vercel is not the selected host.** GitHub Actions / the self-hosted runner remain CI-only, not production workers.
+- **Etsy remains implemented but inactive and fail-closed**; this slice does not activate it.
+- **Phase 2 batch processing remains a mandatory Phil design/approval checkpoint.**
+
+**Verification:** 2239 application tests passed locally; migrations from empty and upgrade passed; consolidated schema passed; full CI-order live sequence passed on one shared fresh PG15 database; recovery live/race/upgrade passed; Phase 0 Slice 2/Slice 3 regression races passed; PR CI passed; post-merge CI run `31662919875` passed 24/24 jobs.
 
 ## Phase 0 — Launch hardening (Slices 1–3 delivered and merged via PRs #69–#71; Phase 0 complete)
 
@@ -146,6 +164,7 @@ See `phase-f-slice-plan.md` for per-slice scope, acceptance criteria, and exclus
 - Phase 0 Slice 1 (PR #69, `c6cf6c8`): `20260812120000_phase0_slice1_environment_and_legacy_access_hardening.sql` — environment helpers, hardened dual-write triggers and legacy RPCs, legacy-table RLS/grants.
 - Phase 0 Slice 2 (PR #70, `9cc5f6a`): `20260816000000_phase0_slice2_current_version_safety.sql` — current-version authority (parent `canonical_skus` serialization, partial unique index as defense in depth), supersede/reconcile on new current versions, terminal `failed`/`package_superseded` reconciliation, dispatch authorization (`gmcom_authorize_destination_dispatch`) for Shopify and Listings Spreadsheet, and regeneration authority-transfer safety.
 - Phase 0 Slice 3 (PR #71, `851be71`): `20260817000000_phase0_slice3_destination_dedup.sql` — delivery-intent-based destination-request deduplication (partial unique index on `(environment, commerce_package_id, destination, intended_external_destination, custom_destination_label)` for ACTIVE operational requests), sequential/concurrent convergence, active-first selection, `failed`/`duplicate_intent` upgrade reconciliation naming the surviving request, and enqueue convergence preserving exact-correlation replay.
+- Recovery Foundation Slice 1 (PR #72, `2f12de4`): `20260818000000_recovery_foundation_slice1.sql` — default backoff schedule (`gmcom_recovery_default_backoff_seconds`, 60/300/900/3600s capped), `rate_limited`/`max_attempts_exceeded` failure codes, claim-boundary maximum-attempt enforcement (7-arg `gmcom_claim_destination_requests`, `p_max_attempts` default 5; a sixth lease is denied), `worker_runs` lifecycle ledger with table-level guard trigger, and read-only environment-scoped `gmcom_destination_queue_health`.
 - Migration gap resolved: `commerce_details` table and `listing_packages.seo_title`/`seo_description` columns have committed DDL at `20260802040000_commerce_readiness.sql`.
 - `20260803000000_commerce_field_ownership.sql` (price/`content_provenance`) was deliberately retired as never-applied.
 - `HY-LOB01-C04` test data verified absent from the live database (2026-08-05).
@@ -177,6 +196,7 @@ Supabase project: `wcrcllhvgbhykbonopzx` (separate co-owner account).
 - **Phase 0 Slice 1 merged (PR #69, `c6cf6c8`)** — environment and legacy-access hardening delivered and post-merge CI green (run `31565668557`, 24/24 jobs, with the documented deferred-drift skip for `schema-drift-deferred`).
 - **Phase 0 Slice 2 merged (PR #70, `9cc5f6a`)** — current-version invariant and regeneration safety delivered and post-merge CI green (run `31605446557`, 24/24 jobs). Etsy application-level pre-side-effect authorization is intentionally deferred to the Etsy activation phase.
 - **Phase 0 Slice 3 merged (PR #71, `851be71`)** — destination-request deduplication delivered and post-merge CI green (run `31615866708`, 24/24 jobs).
+- **Recovery Foundation Slice 1 merged (PR #72, `2f12de4`)** — retry limits and queue health delivered and post-merge CI green (run `31662919875`, 24/24 jobs). Recovery Foundation Slice 1 is complete; it is not a Phase 0 slice. Scheduled Worker Slice 2 has not begun.
 - **Phase H is COMPLETE** (H1–H8 + Phase E/F/G prerequisite corrections, merged at `c65b023` per PR #53). No further Phase H slices are proposed.
 - **Owner-confirmed output requirement (2026-08-09):** the review/publishing workflow must offer **Shopify, Etsy, and a permanent master Listings Spreadsheet** as **mandatory operational destination choices**. **For each approved listing, Phil or Crystal chooses the intended route; a listing is not required to be sent to all three destinations simultaneously.** Etsy is required for overall GM Commerce completion (ROADMAP Milestone 4, now classified as required). The Listings Spreadsheet is append-only and idempotent, written through a **durable export job/outbox with an immutable export ledger** (never claimed atomic with the database), configured from trusted server credentials only, and is **not** a per-listing downloadable file (CSV download is optional backup only). All three adapters are now **implemented** (PRs #66–#68); launch readiness is still pending (Etsy fail-closed until its token store and policy source are configured and verified; Shopify draft-only end-to-end launch verification not yet executed; automatic background processing not yet complete).
 - **GitHub Issues**: Several tasks lack formal Issues. GitHub API access has been intermittent. Issue #46 remains open (see Schema State).
@@ -189,14 +209,14 @@ Supabase project: `wcrcllhvgbhykbonopzx` (separate co-owner account).
 
 ## Next Phase
 
-**Phase 0 — Launch hardening.** Slices 1–3 (PRs #69–#71, `c6cf6c8`, `9cc5f6a`, `851be71`) are merged; **Phase 0 Slices 1–3 are complete.** The next implementation work is automatic background processing and the remaining launch conditions in `COMPLETION.md`; legacy cutover comes later, after required capabilities and dependencies are safely moved. **Phase 2 batch behavior is a mandatory owner-design checkpoint and must not be designed or implemented until Phil approves how it should work.**
+**Phase 0 — Launch hardening.** Slices 1–3 (PRs #69–#71, `c6cf6c8`, `9cc5f6a`, `851be71`) are merged; **Phase 0 Slices 1–3 are complete.** **Recovery Foundation Slice 1** (PR #72, `2f12de4`) is also merged and complete; it is **not** a Phase 0 slice. The next implementation work is **Scheduled Worker Slice 2** — a production scheduler invoking the existing processors on a schedule — which **has not begun**. The intended worker host is **Phil's UPS-backed Linux computer** with a dedicated systemd service/timer isolated from the self-hosted GitHub Actions runner (Vercel is not the selected host). The remaining launch conditions in `COMPLETION.md` (automatic background processing, Shopify launch verification, Etsy configuration/authorization, photo architecture, batch processing, legacy cutover, and the recovery ladder) remain; **Phase 2 batch behavior is a mandatory owner-design checkpoint and must not be designed or implemented until Phil approves how it should work.**
 
 ## AI Capacity
 
 | Contributor | Role | Capacity | Current assignment |
 |---|---|---|---|
 | ChatGPT | Project manager / coordinator | Available | HQ status/plan documentation |
-| Claude | Primary coordination + implementation + review | Available | Phase I complete (PRs #54–#68); Phase 0 Slices 1–3 (PRs #69–#71) delivered; next implementation slice pending authorization |
+| Claude | Primary coordination + implementation + review | Available | Phase I complete (PRs #54–#68); Phase 0 Slices 1–3 (PRs #69–#71); Recovery Foundation Slice 1 (PR #72) delivered; next implementation slice (Scheduled Worker Slice 2) pending authorization |
 | GitHub Copilot | Implementation contributor | Quota-limited | Phase I bridge foundation (I1) |
 | Phil | Product owner | Available as schedule permits | Next implementation slice authorization; Phase 2 batch design decision |
 
