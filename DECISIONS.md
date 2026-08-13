@@ -662,3 +662,33 @@ Database-to-external-API atomicity is impossible; authorization is therefore pla
 **Decision:** The approved sequence was **Phase 0 Slice 2: current-version invariant and regeneration safety** (finding D1/High), then **Phase 0 Slice 3: destination-request deduplication** (finding D2/High). **Both are now completed and merged** (PRs #70–#71). Legacy cutover comes later, after the required capabilities and dependencies are safely moved (see the safe cutover sequence above).
 
 **Reason:** Owner-confirmed. This replaces any earlier statement that Phase 0 Slice 2 is "legacy cutover" — it is not; legacy cutover is a later, separately sequenced step.
+
+## 2026-08-13 — Database-enforced maximum attempts and the fifth-attempt / sixth-lease boundary
+
+**Decision:** A destination request may receive **five processing leases**; the fifth attempt may run and succeed. The maximum-attempt rule is enforced **at the database boundary** in `gmcom_claim_destination_requests` (`p_max_attempts`, default 5): a due or expired request whose `attempt_count` is already at the maximum is terminally failed with `max_attempts_exceeded` and **a sixth lease is denied**. `attempt_count` counts leases issued, not failures. Terminalization is idempotent and concurrency-safe, and `max_attempts_exceeded` is written only by the claim boundary (it cannot be supplied through the ordinary failure RPC to relabel a request before the limit). Precedence remains `package_superseded` → `snapshot_mismatch` → `max_attempts_exceeded`.
+
+**Reason:** Recovery Foundation Slice 1 (PR #72, merge `2f12de4`, migration `20260818000000_recovery_foundation_slice1.sql`) delivered this enforcement at the database layer rather than relying on a future worker calling a helper. Manual Process/Retry controls use the same claim RPC and therefore cannot bypass the maximum.
+
+## 2026-08-13 — Retry-After precedence and capped default backoff
+
+**Decision:** Default retry backoff is **60, 300, 900, and 3600 seconds, capped at 3600** (attempt 1 → 60s, 2 → 300s, 3 → 900s, ≥4 → 3600s). An explicit provider **`Retry-After` (bounded 1–86400s) takes precedence** over the default. `rate_limited` is a retryable failure code; `max_attempts_exceeded` is a terminal code written only by the claim boundary.
+
+**Reason:** Recovery Foundation Slice 1 (PR #72). Backoff defaults are deterministic and bounded; provider-supplied delays win when valid.
+
+## 2026-08-13 — `worker_runs` and queue-health observability foundation
+
+**Decision:** `worker_runs` is the worker-run lifecycle audit ledger (begin/finalize via `gmcom_worker_run_begin`/`gmcom_worker_run_finish`; only `running` runs finalize; finalized runs cannot be rewritten — enforced at both the RPC and table level; outcome counts nonnegative and coherent; service-role only; environment-isolated). `gmcom_destination_queue_health` provides read-only, environment-scoped queue-health classification (pending due/scheduled, processing leased/expired, needs_confirmation, succeeded, max_attempts_exceeded, package_superseded, duplicate_intent, snapshot_mismatch, failed_other). Etsy may appear in health information but remains inactive and fail-closed.
+
+**Reason:** Recovery Foundation Slice 1 (PR #72). These are the observability foundation for the future scheduled worker.
+
+## 2026-08-13 — Worker host: Phil's UPS-backed home Linux computer; Vercel is not the selected host
+
+**Decision:** The intended production worker host is **Phil's UPS-backed home Linux computer**, running a **dedicated systemd service/timer** for the scheduled worker. The production worker service is **isolated from GitHub's self-hosted CI runner** (GitHub Actions / the self-hosted runner remain CI-only, not production workers). **Vercel is not the selected host** and is not recommended or described as the selected host anywhere in the authoritative records. Scheduler/systemd implementation is deferred to Scheduled Worker Slice 2, which has not begun.
+
+**Reason:** Recovery Foundation Slice 1 (PR #72) records this host decision so no contributor plans Vercel Cron or a Vercel-hosted worker for automatic processing. This corrects any earlier Vercel-host recommendation for the scheduled worker.
+
+## 2026-08-13 — Recovery Foundation Slice 1 is a Recovery Foundation slice, not a Phase 0 slice
+
+**Decision:** Recovery Foundation Slice 1 (PR #72, merge `2f12de4`, migration `20260818000000_recovery_foundation_slice1.sql`) is **complete** and is recorded as a **Recovery Foundation** slice, **not** a Phase 0 slice (Phase 0 ended with Slice 3, PR #71). No scheduler, continuously running worker, notifications, or AI recovery are implemented here; Scheduled Worker Slice 2 has not begun; Etsy remains inactive and fail-closed; Phase 2 batch processing remains a mandatory Phil design/approval checkpoint.
+
+**Reason:** Prevents mislabeling the Recovery Foundation work as another Phase 0 slice and keeps the launch/sequence record accurate.
