@@ -607,7 +607,7 @@ Database-to-external-API atomicity is impossible; authorization is therefore pla
 
 **Decision:** All three destination adapters write through the canonical destination routing outbox (PR #65): a durable request with a lifecycle, lease-protected claim (one worker wins the lease), immutable attempts/ledger, error allowlist, and atomic completion. The database write and the remote destination write are never one atomic transaction.
 
-**Reason:** This gives idempotency, retry, and failure visibility for remote destination calls, consistent with the earlier Listings Spreadsheet decision (never claim DB + remote as one transaction). **Open finding C3/High remains open:** there is **no automatic background consumer** — processors are manual server actions today. Automatic workers/retries/queue maintenance are required for launch per owner decision 3 and are not yet implemented.
+**Reason:** This gives idempotency, retry, and failure visibility for remote destination calls, consistent with the earlier Listings Spreadsheet decision (never claim DB + remote as one transaction). **Finding C3/High is implemented in code for Shopify and Listings Spreadsheet** by Scheduled Worker Slice 2 (PR #73, `904694c`). Production deployment/configuration and operational verification remain required for launch; Etsy remains separately activation-gated.
 
 ## 2026-08-12 — Etsy fail-closed configuration
 
@@ -683,13 +683,13 @@ Database-to-external-API atomicity is impossible; authorization is therefore pla
 
 ## 2026-08-13 — Worker host: Phil's UPS-backed home Linux computer; Vercel is not the selected host
 
-**Decision:** The intended production worker host is **Phil's UPS-backed home Linux computer**, running a **dedicated systemd service/timer** for the scheduled worker. The production worker service is **isolated from GitHub's self-hosted CI runner** (GitHub Actions / the self-hosted runner remain CI-only, not production workers). **Vercel is not the selected host** and is not recommended or described as the selected host anywhere in the authoritative records. Scheduler/systemd implementation is deferred to Scheduled Worker Slice 2, which has not begun.
+**Decision:** The intended production worker host is **Phil's UPS-backed home Linux computer**, running a **dedicated systemd service/timer** for the scheduled worker. The production worker service is **isolated from GitHub's self-hosted CI runner** (GitHub Actions / the self-hosted runner remain CI-only, not production workers). **Vercel is not the selected host** and is not recommended or described as the selected host anywhere in the authoritative records. Scheduler/systemd implementation was delivered in Scheduled Worker Slice 2 (PR #73, `904694c`); production installation/configuration and operational verification remain open.
 
 **Reason:** Recovery Foundation Slice 1 (PR #72) records this host decision so no contributor plans Vercel Cron or a Vercel-hosted worker for automatic processing. This corrects any earlier Vercel-host recommendation for the scheduled worker.
 
 ## 2026-08-13 — Recovery Foundation Slice 1 is a Recovery Foundation slice, not a Phase 0 slice
 
-**Decision:** Recovery Foundation Slice 1 (PR #72, merge `2f12de4`, migration `20260818000000_recovery_foundation_slice1.sql`) is **complete** and is recorded as a **Recovery Foundation** slice, **not** a Phase 0 slice (Phase 0 ended with Slice 3, PR #71). No scheduler, continuously running worker, notifications, or AI recovery are implemented here; Scheduled Worker Slice 2 has not begun; Etsy remains inactive and fail-closed; Phase 2 batch processing remains a mandatory Phil design/approval checkpoint.
+**Decision:** Recovery Foundation Slice 1 (PR #72, merge `2f12de4`, migration `20260818000000_recovery_foundation_slice1.sql`) is **complete** and is recorded as a **Recovery Foundation** slice, **not** a Phase 0 slice (Phase 0 ended with Slice 3, PR #71). This slice itself contains no scheduler, continuously running worker, notifications, or AI recovery; the scheduler/worker was subsequently delivered in Scheduled Worker Slice 2 (PR #73, `904694c`). Etsy remains inactive and fail-closed; Phase 2 batch processing remains a mandatory Phil design/approval checkpoint.
 
 **Reason:** Prevents mislabeling the Recovery Foundation work as another Phase 0 slice and keeps the launch/sequence record accurate.
 
