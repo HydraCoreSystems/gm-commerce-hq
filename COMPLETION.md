@@ -64,7 +64,7 @@ GM Commerce is operationally complete when the real product pipeline — select 
 
 ## What is true right now (current end state)
 
-- `gm-commerce/main` is at **`904694c`** (merge of PR #73, Scheduled Worker Slice 2). Dedicated post-merge worker tests are green (run **`31757127701`**); full post-merge CI run **`31757127717`** is being verified before this HQ record merges.
+- `gm-commerce/main` is at **`904694c`** (merge of PR #73, Scheduled Worker Slice 2). Dedicated post-merge worker tests are green (run **`31757127701`**); full post-merge CI run **`31757127717`** passed **24/24 jobs** (0 failed, 0 cancelled, 0 skipped).
 - The review shell is populated by **real canonical CommercePackages** (created at generation finalization, assembled with exact-version content and photo references, and displayed in the review shell). The earlier "the review shell has no real CommercePackages" statement no longer holds.
 - Every new `ready_for_ai` product automatically gains canonical identity (I1 + I2). Existing products can be backfilled on demand (I3). Every approved photo set gains permanent canonical PhotoAssets (I4); historically approved photo sets can be backfilled (I5).
 - AI-content Claims are bridged truthfully (`under_review` only, no fabrication). Drift is monitored (read-only, no repair).
