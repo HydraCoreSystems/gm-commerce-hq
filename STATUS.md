@@ -76,7 +76,7 @@ I3 delivered: existing eligible legacy products can be backfilled into canonical
 - Etsy activation and Phase 2 batch design were not started.
 - Process-control tests run in a dedicated GitHub-hosted workflow, not on Phil's interactive self-hosted desktop runner. This isolation was added after a fake-PID test regression broadcast SIGTERM to the desktop session; production guards and regression tests now prevent recurrence.
 
-**Verification:** PR CI was green before merge (regular CI run `31754388268`, 24/24 jobs; dedicated Scheduled Worker Tests run `31754388275`, success). Post-merge dedicated Scheduled Worker Tests run `31757127701` passed. Full post-merge CI run `31757127717`: **verification in progress; update before merging this HQ record.**
+**Verification:** PR CI was green before merge (regular CI run `31754388268`, 24/24 jobs; dedicated Scheduled Worker Tests run `31754388275`, success). Post-merge dedicated Scheduled Worker Tests run `31757127701` passed. Full post-merge CI run `31757127717` passed **24/24 jobs** (0 failed, 0 cancelled, 0 skipped), including `verify` and `schema-from-empty`.
 
 ## Phase 0 — Launch hardening (Slices 1–3 delivered and merged via PRs #69–#71; Phase 0 complete)
 
