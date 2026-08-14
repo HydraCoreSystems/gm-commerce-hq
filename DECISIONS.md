@@ -692,3 +692,16 @@ Database-to-external-API atomicity is impossible; authorization is therefore pla
 **Decision:** Recovery Foundation Slice 1 (PR #72, merge `2f12de4`, migration `20260818000000_recovery_foundation_slice1.sql`) is **complete** and is recorded as a **Recovery Foundation** slice, **not** a Phase 0 slice (Phase 0 ended with Slice 3, PR #71). No scheduler, continuously running worker, notifications, or AI recovery are implemented here; Scheduled Worker Slice 2 has not begun; Etsy remains inactive and fail-closed; Phase 2 batch processing remains a mandatory Phil design/approval checkpoint.
 
 **Reason:** Prevents mislabeling the Recovery Foundation work as another Phase 0 slice and keeps the launch/sequence record accurate.
+
+## 2026-08-14 — Scheduled Worker Slice 2 runs Shopify and Listings Spreadsheet on the UPS-backed Linux host
+
+**Decision:** Scheduled Worker Slice 2 (PR #73, merge `904694c`) implements scheduled automatic processing for **Shopify and Listings Spreadsheet only** as a self-contained Node worker deployed through a dedicated hardened systemd oneshot/timer on Phil's UPS-backed Linux computer. Etsy is rejected by worker configuration and remains inactive and fail-closed. Vercel and GitHub Actions are not production worker hosts. The worker reuses the canonical database claim/lease/retry/currentness/dedup boundaries and writes truthful per-destination `worker_runs` results. Manual processing remains the fallback.
+
+**Reason:** This implements the selected low-cost worker-host design without creating a second processing authority. Database leases recover interrupted work after power/internet loss; host-level mutual exclusion prevents scheduled/manual overlap. Production installation, credentials, timer activation, and operational monitoring/recovery verification remain launch work even though the implementation is merged. Phase 2 batch processing is unchanged and remains a mandatory owner-design checkpoint.
+
+## 2026-08-14 — Process-control tests are isolated from the interactive self-hosted runner
+
+**Decision:** Tests that create child processes, send Unix signals, or validate process-group termination run in a dedicated GitHub-hosted Scheduled Worker Tests workflow, not on Phil's interactive self-hosted desktop runner. Production and tests must explicitly reject PID 0 and PID 1 as process-group signal targets. Fake-PID unit fixtures must use non-special PIDs.
+
+**Reason:** During PR #73 verification, a test double set the child PID to 1 while cleanup used `process.kill(-pid, "SIGTERM")`. On Linux, `kill(-1, ...)` broadcasts the signal to every process the caller may signal, which closed Phil's browser/session applications and crashed Vitest/Node on the runner. The production PID guards, regression tests, and hosted-workflow isolation prevent recurrence and ensure CI can never again disturb the interactive desktop in this way.
+
