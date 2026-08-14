@@ -2,7 +2,7 @@
 
 > Plain-English answer to: **What must be finished before GM Commerce is considered operationally complete?**
 >
-> Owner-facing. Derived strictly from `ROADMAP.md`, `PRODUCT_RESET_2026-08-03.md`, `phase-i-slice-plan.md`, `DECISIONS.md`, and `STATUS.md` — no new capabilities, dates, SourceCategories, Claims, evidence rules, or lifecycle states are invented here. Last updated: 2026-08-13 (Phase I complete through PR #68; Phase 0 Slices 1–3 merged via PRs #69–#71; Recovery Foundation Slice 1 merged via PR #72).
+> Owner-facing. Derived strictly from `ROADMAP.md`, `PRODUCT_RESET_2026-08-03.md`, `phase-i-slice-plan.md`, `DECISIONS.md`, and `STATUS.md` — no new capabilities, dates, SourceCategories, Claims, evidence rules, or lifecycle states are invented here. Last updated: 2026-08-14 (Phase I complete through PR #68; Phase 0 Slices 1–3 merged via PRs #69–#71; Recovery Foundation Slice 1 merged via PR #72; Scheduled Worker Slice 2 merged via PR #73).
 
 ## The finish line in one sentence
 
@@ -54,15 +54,17 @@ GM Commerce is operationally complete when the real product pipeline — select 
 - **`worker_runs`** worker lifecycle audit ledger (begin/finalize; finalized runs cannot be rewritten; service-role only; environment-isolated).
 - **`gmcom_destination_queue_health`** — read-only, environment-scoped queue-health visibility.
 - **Manual processing controls remain the operational fallback**; they use the same claim RPC and cannot bypass the database maximum.
-- **No scheduler or continuously running worker is implemented yet; Scheduled Worker Slice 2 has not begun.** The intended worker host is **Phil's UPS-backed Linux computer** with a dedicated systemd service/timer isolated from the self-hosted GitHub Actions runner (Vercel is not the selected host; GitHub Actions remains CI-only).
+- **Scheduled Worker Slice 2 is implemented and merged** (PR #73, `904694c`): a fail-closed Linux worker for Shopify and Listings Spreadsheet plus hardened systemd service/timer artifacts. Etsy is excluded. Production-host installation, secrets, timer enablement, and operational verification remain open; Vercel is not the selected host.
 - **Etsy remains implemented but inactive and fail-closed**; this slice does not activate it.
 - **Phase 2 batch processing remains a mandatory Phil design/approval checkpoint.**
 
-**Recovery Foundation safeguards delivered by this slice are COMPLETE** (maximum-attempt enforcement, retry/backoff policy, worker-run ledger, queue health). The following remain **unresolved**: automatic background processing / scheduler deployment / production worker-host setup, worker recovery and monitoring verification, Etsy activation, photo architecture, batch processing, Shopify launch verification, legacy cutover, and the later recovery-ladder work.
+**Recovery Foundation safeguards delivered by this slice are COMPLETE** (maximum-attempt enforcement, retry/backoff policy, worker-run ledger, queue health). The following remain **unresolved**: production worker-host installation/configuration and operational monitoring verification, Etsy activation, photo architecture, batch processing, Shopify launch verification, legacy cutover, and the later recovery-ladder work.
+
+**Scheduled Worker Slice 2 — Linux scheduled processing (PR #73, merge `904694c`):** the automatic worker code is complete for Shopify and Listings Spreadsheet. It builds a self-contained Node bundle, runs from a hardened systemd oneshot/timer on the selected UPS-backed Linux host, prevents overlapping runs, uses database leases/retries/currentness/dedup, and records truthful per-destination worker-run counts. Etsy is rejected by configuration and remains inactive/fail-closed. Process-control tests are isolated to a dedicated GitHub-hosted workflow after the self-hosted desktop incident; PID 0/1 signaling is explicitly blocked. **Implementation complete does not mean operational deployment complete:** host installation, real credentials, timer enablement, and operational recovery/monitoring verification remain open. Phase 2 batch processing was not designed or implemented.
 
 ## What is true right now (current end state)
 
-- `gm-commerce/main` is at **`2f12de4`** (merge of PR #72, Recovery Foundation Slice 1); post-merge CI green (workflow run **`31662919875`**, 24/24 jobs).
+- `gm-commerce/main` is at **`904694c`** (merge of PR #73, Scheduled Worker Slice 2). Dedicated post-merge worker tests are green (run **`31757127701`**); full post-merge CI run **`31757127717`** passed **24/24 jobs** (0 failed, 0 cancelled, 0 skipped).
 - The review shell is populated by **real canonical CommercePackages** (created at generation finalization, assembled with exact-version content and photo references, and displayed in the review shell). The earlier "the review shell has no real CommercePackages" statement no longer holds.
 - Every new `ready_for_ai` product automatically gains canonical identity (I1 + I2). Existing products can be backfilled on demand (I3). Every approved photo set gains permanent canonical PhotoAssets (I4); historically approved photo sets can be backfilled (I5).
 - AI-content Claims are bridged truthfully (`under_review` only, no fabrication). Drift is monitored (read-only, no repair).
@@ -77,7 +79,7 @@ GM Commerce is operationally complete when the real product pipeline — select 
 |---|---|---|---|
 | 1 | **Current-version invariant and regeneration safety** | One authoritative current canonical CommercePackage per environment and SKU; deterministic highest-version convergence under concurrent materialization; stale approval/enqueue/claim/retry/success fail closed; nonterminal requests for superseded packages become terminal `failed`/`package_superseded` (review finding D1/High). | **Fixed and merged** (Phase 0 Slice 2, PR #70, `9cc5f6a`). |
 | 2 | **Destination-request deduplication** | At most one ACTIVE operational destination request per delivery intent `(environment, commerce_package_id, destination, intended_external_destination, custom_destination_label)`; sequential and concurrent duplicate submissions converge; upgrade reconciliation records duplicates as `failed`/`duplicate_intent` (review finding D2/High). | **Fixed and merged** (Phase 0 Slice 3, PR #71, `851be71`). |
-| 3 | **Automatic workers, retries, and queue maintenance** | No automatic background consumer exists; processors are manual server actions (review finding C3/High — a product gap). Required for launch per owner decision 3 (processing/retries/queue/destination creation must be automatic). Recovery Foundation Slice 1 (PR #72) delivered the database enforcement points, worker-run ledger, and queue-health visibility, but **no scheduler or continuously running worker is implemented yet**. | **Database foundation complete (Recovery Foundation Slice 1, PR #72, `2f12de4`); scheduled worker NOT implemented (Scheduled Worker Slice 2 not begun).** |
+| 3 | **Automatic workers, retries, and queue maintenance** | Recovery Foundation Slice 1 delivered database retry limits, worker-run ledger, and queue health. Scheduled Worker Slice 2 delivers automatic Shopify and Listings Spreadsheet processing through a Linux systemd timer; Etsy remains excluded and fail-closed. | **Worker code merged (PR #73, `904694c`); production host installation, secrets, timer activation, and operational verification remain open.** |
 | 4 | **Batch processing (Phase 2)** | REQUIRED before launch. **Mandatory owner-design checkpoint:** must not be designed or implemented until Phil approves how it should work. | **Not begun; design gated on Phil.** |
 | 5 | **Google Drive → Supabase Storage photo architecture** | Google Drive = human master; Supabase Storage = application copies/derivatives; OneDrive = independent backup/archive (owner decision). | **Not implemented.** |
 | 6 | **Shopify draft-only end-to-end launch verification** | Shopify launches first; a draft-only end-to-end launch verification against the real store has not been executed as the launch gate. | **Not executed.** |
@@ -104,9 +106,9 @@ The owner confirmed (2026-08-09) that the review/publishing workflow must offer 
 
 Three distinct categories:
 
-**1. Implemented but not yet launch-ready.** Phase I is fully implemented (identity, photo, CommercePackage, claims, drift, review decisions, routing, and all three destination adapters). Phase 0 Slices 1–3 (environment/legacy-access hardening; current-version invariant and regeneration safety; destination-request deduplication) are merged. **Recovery Foundation Slice 1** (PR #72, `2f12de4`) is merged — its database/observability safeguards are complete, but no scheduler or continuously running worker is implemented. The remaining launch items in the table above are open.
+**1. Implemented but not yet launch-ready.** Phase I is fully implemented (identity, photo, CommercePackage, claims, drift, review decisions, routing, and all three destination adapters). Phase 0 Slices 1–3 (environment/legacy-access hardening; current-version invariant and regeneration safety; destination-request deduplication) are merged. **Recovery Foundation Slice 1** (PR #72, `2f12de4`) and **Scheduled Worker Slice 2** (PR #73, `904694c`) are merged — the database safeguards and automatic Shopify/Spreadsheet worker are implemented, but production deployment and operational verification remain open. The remaining launch items in the table above are open.
 
-**2. Required launch work (not yet complete):** the seven open items in the "Implemented vs. launch-ready" table above — automatic workers/retries/queue maintenance; batch processing (owner-design gated); Google Drive → Supabase Storage photo architecture; Shopify draft-only launch verification; Etsy configuration and launch readiness (including the deferred pre-side-effect authorization); dependency-safe legacy cutover; the deterministic/AI/owner recovery ladder.
+**2. Required launch work (not yet complete):** the seven open items in the "Implemented vs. launch-ready" table above — production deployment and verification of automatic workers/retries/queue maintenance; batch processing (owner-design gated); Google Drive → Supabase Storage photo architecture; Shopify draft-only launch verification; Etsy configuration and launch readiness (including the deferred pre-side-effect authorization); dependency-safe legacy cutover; the deterministic/AI/owner recovery ladder.
 
 **3. Genuinely optional enhancements after completion** (each separately authorized; never part of the required finish line): CSV download (backup functionality only); sale and inventory coordination (ROADMAP Milestone 5); public editorial publishing (`PRODUCT_RESET` §17/§18); broader marketing/analytics/automated repricing (ROADMAP "Version 2 and Later"); GMCOM-014 real-export validation.
 
@@ -118,7 +120,7 @@ Three distinct categories:
 - **Current-version invariant / regeneration safety:** no new owner decision identified; **fixed and merged** in Phase 0 Slice 2 (PR #70, `9cc5f6a`).
 - **Destination-request deduplication:** no new owner decision identified; **fixed and merged** in Phase 0 Slice 3 (PR #71, `851be71`).
 - **Recovery Foundation safeguards:** database-enforced maximum attempts, Retry-After precedence + capped default backoff, `worker_runs` and queue-health observability — **delivered and merged** in Recovery Foundation Slice 1 (PR #72, `2f12de4`).
-- **Automatic workers/retries/queue:** owner decision 3 already requires automatic processing; the database enforcement points and observability are in place (Recovery Foundation Slice 1); the scheduled worker implementation remains (Scheduled Worker Slice 2).
+- **Automatic workers/retries/queue:** database enforcement and observability are delivered (PR #72), and the Shopify/Spreadsheet Linux worker is implemented (PR #73); production host installation/configuration and operational verification remain.
 - **Worker host:** the selected worker host is **Phil's UPS-backed home Linux computer** with a dedicated systemd service/timer, isolated from GitHub's self-hosted CI runner (recorded in `DECISIONS.md`). Vercel is not the selected host.
 - **Legacy cutover:** owner decision — dependency-ordered cutover only, no premature deletion (recorded in `DECISIONS.md`).
 - **Photo storage:** owner decision — Google Drive human master → Supabase Storage app copies/derivatives → OneDrive backup/archive (recorded in `DECISIONS.md`).
@@ -133,7 +135,7 @@ Three distinct categories:
 
 1. Phase 0 Slice 2 (current-version invariant + regeneration safety) is fixed and merged — **satisfied** (PR #70, `9cc5f6a`).
 2. Phase 0 Slice 3 (destination-request deduplication) is fixed and merged — **satisfied** (PR #71, `851be71`).
-3. Automatic background processing (workers, retries, queue maintenance, destination creation) is implemented (owner decision 3). Recovery Foundation Slice 1 (PR #72, `2f12de4`) delivered the database enforcement points, worker-run ledger, and queue health; the scheduled worker itself (Scheduled Worker Slice 2) is not yet implemented.
+3. Automatic background processing code for Shopify and Listings Spreadsheet is implemented (PR #73, `904694c`); the production Linux host is installed/configured, the timer is enabled, credentials are provisioned, and real recovery/monitoring behavior is operationally verified. Etsy remains separately activation-gated.
 4. Batch processing (Phase 2) is designed per Phil's approval and implemented.
 5. Google Drive → Supabase Storage photo architecture is implemented.
 6. Shopify draft-only end-to-end launch verification passes (Shopify launches first).
@@ -152,7 +154,7 @@ After operational completion there is **no automatic next phase**. The system en
 - **Phase 0 Slice 2** (current-version invariant + regeneration safety) — **completed and merged** (PR #70, `9cc5f6a`).
 - **Phase 0 Slice 3** (destination-request deduplication) — **completed and merged** (PR #71, `851be71`).
 - **Recovery Foundation Slice 1** (retry limits + queue health) — **completed and merged** (PR #72, `2f12de4`).
-- **Automatic background processing** — the database/observability foundation is delivered (Recovery Foundation Slice 1); the scheduled worker implementation is **Scheduled Worker Slice 2**, not yet begun (launch requirement, owner decision 3; intended host is Phil's UPS-backed Linux computer with a dedicated systemd service isolated from the self-hosted runner).
+- **Automatic background processing** — database/observability foundation delivered (PR #72); Shopify/Spreadsheet scheduled worker implemented (PR #73). Remaining work is production installation/configuration and operational verification on Phil's UPS-backed Linux host, isolated from the self-hosted runner.
 - **Batch processing (Phase 2)** — REQUIRED before launch, **gated on Phil's design approval**.
 - **Google Drive → Supabase Storage photo architecture** — one implementation slice.
 - **Shopify draft-only end-to-end launch verification** — a verification/launch-gate activity, not a new feature.

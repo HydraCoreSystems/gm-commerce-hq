@@ -1,6 +1,6 @@
 # Current Project Status
 
-_Last updated: 2026-08-13 (Phase I completed through PR #68; Phase 0 Slices 1–3 merged via PRs #69–#71; Recovery Foundation Slice 1 merged via PR #72)_
+_Last updated: 2026-08-14 (Phase I completed through PR #68; Phase 0 Slices 1–3 merged via PRs #69–#71; Recovery Foundation Slice 1 merged via PR #72; Scheduled Worker Slice 2 merged via PR #73)_
 
 ## Phase I — Legacy-to-Canonical Bridge (complete: I1–I5, CommercePackage, claims, drift, routing, and the three destination adapters all delivered and merged through PR #68)
 
@@ -8,9 +8,9 @@ Phase I bridges the real, working production pipeline (GMCOM-001–012) into the
 
 **Phase I is complete as implemented:** every slice in the plan is delivered and merged — the identity backbone (I1–I3), the approved-photo bridge (I4), the historical approved-photo backfill (I5, PR #58), canonical CommercePackage creation (PR #59), content assembly (PR #60), truthful claims mapping + field lineage (PR #61), drift monitoring/reconciliation hardening (PR #62), the review-shell display of assembled packages (PR #63), atomic canonical review decisions (PR #64), canonical destination routing/outbox (PR #65), and the three destination adapters — Listings Spreadsheet (PR #66), Shopify draft (PR #67), and Etsy draft (PR #68).
 
-**"Implemented" is not the same as "launch-ready."** The adapters exist and are live-tested against Postgres, but the operational launch conditions are still open: automatic background processing is not yet complete (workers are manual server actions today), Shopify draft-only end-to-end launch verification has not been executed, Etsy remains fail-closed until its token store and policy source are configured and verified (its application-level pre-side-effect authorization is deferred to the Etsy activation phase), and legacy cutover has not begun. See `COMPLETION.md` and the Phase 0 section below.
+**"Implemented" is not the same as "launch-ready."** The adapters exist and are live-tested against Postgres, but the operational launch conditions are still open: automatic background processing is implemented for Shopify and Listings Spreadsheet in Scheduled Worker Slice 2, but production-host installation, credentials, timer activation, and operational verification remain open, Shopify draft-only end-to-end launch verification has not been executed, Etsy remains fail-closed until its token store and policy source are configured and verified (its application-level pre-side-effect authorization is deferred to the Etsy activation phase), and legacy cutover has not begun. See `COMPLETION.md` and the Phase 0 section below.
 
-`gm-commerce/main` is at `2f12de4935d9d7049ce01896f1adc4036bb577b4` (merge of PR #72 / Recovery Foundation Slice 1).
+`gm-commerce/main` is at `904694cf2693c92a898a345a801509dc794bfa90` (merge of PR #73 / Scheduled Worker Slice 2).
 
 | Slice | Scope | PR | Status | Merge |
 |---|---|---|---|---|
@@ -58,11 +58,25 @@ I3 delivered: existing eligible legacy products can be backfilled into canonical
 - **`worker_runs`** provides the worker-run lifecycle audit ledger (begin/finalize; a finalized run cannot be rewritten; service-role only; environment-isolated).
 - **`gmcom_destination_queue_health`** provides read-only, environment-scoped queue-health visibility.
 - **Manual processing controls remain the operational fallback**; they use the same claim RPC and cannot bypass the database maximum.
-- **Scheduled Worker Slice 2 has not begun.** The intended worker host is **Phil's UPS-backed Linux computer**, using a **dedicated systemd service/timer isolated from the self-hosted GitHub Actions runner**. **Vercel is not the selected host.** GitHub Actions / the self-hosted runner remain CI-only, not production workers.
+- **Scheduled Worker Slice 2 is implemented and merged via PR #73 (`904694c`).** The intended production host remains **Phil's UPS-backed Linux computer**, using the delivered dedicated systemd service/timer isolated from the self-hosted GitHub Actions runner. Production installation, secrets, timer activation, and operational verification remain open. **Vercel is not the selected host.**
 - **Etsy remains implemented but inactive and fail-closed**; this slice does not activate it.
 - **Phase 2 batch processing remains a mandatory Phil design/approval checkpoint.**
 
 **Verification:** 2239 application tests passed locally; migrations from empty and upgrade passed; consolidated schema passed; full CI-order live sequence passed on one shared fresh PG15 database; recovery live/race/upgrade passed; Phase 0 Slice 2/Slice 3 regression races passed; PR CI passed; post-merge CI run `31662919875` passed 24/24 jobs.
+
+## Scheduled Worker Slice 2 — Linux scheduled processing (PR #73, merge `904694c`)
+
+**Scheduled Worker Slice 2 is implemented and merged.** It delivers a self-contained Node worker bundle plus hardened systemd service/timer deployment artifacts for Phil's UPS-backed Linux host. The worker processes **Shopify and Listings Spreadsheet only**; Etsy is explicitly rejected by configuration and remains inactive and fail-closed. It uses the canonical claim/lease/retry/currentness/dedup safeguards and records truthful per-destination `worker_runs` outcomes.
+
+- Configuration fails closed before claims or external writes; credentials remain host-only.
+- A kernel-backed host lock prevents overlapping scheduled/manual invocations. Process-group termination is guarded so PID 0/1 can never be signaled.
+- Per-request failures remain database-recorded and recoverable; worker-level failures return a nonzero exit while another enabled destination is still attempted.
+- Power or internet interruption is recovered through expired database leases and the next timer invocation; manual controls remain the fallback.
+- Production-host installation, secret provisioning, timer enablement, and real operational monitoring verification remain **not completed**.
+- Etsy activation and Phase 2 batch design were not started.
+- Process-control tests run in a dedicated GitHub-hosted workflow, not on Phil's interactive self-hosted desktop runner. This isolation was added after a fake-PID test regression broadcast SIGTERM to the desktop session; production guards and regression tests now prevent recurrence.
+
+**Verification:** PR CI was green before merge (regular CI run `31754388268`, 24/24 jobs; dedicated Scheduled Worker Tests run `31754388275`, success). Post-merge dedicated Scheduled Worker Tests run `31757127701` passed. Full post-merge CI run `31757127717` passed **24/24 jobs** (0 failed, 0 cancelled, 0 skipped), including `verify` and `schema-from-empty`.
 
 ## Phase 0 — Launch hardening (Slices 1–3 delivered and merged via PRs #69–#71; Phase 0 complete)
 
@@ -81,7 +95,7 @@ I3 delivered: existing eligible legacy products can be backfilled into canonical
 **Approved next sequence (owner-confirmed):**
 
 - **Legacy cutover** comes later, after the required capabilities and dependencies are safely moved (see the safe cutover sequence in `DECISIONS.md` and `COMPLETION.md`).
-- **Automatic background processing** (review finding C3/High — no automatic consumer; processors are manual server actions) is a launch requirement per owner decision 3, and is not yet implemented.
+- **Automatic background processing code** for Shopify and Listings Spreadsheet is delivered in Scheduled Worker Slice 2 (PR #73). Production host deployment/configuration and operational verification remain launch requirements.
 - **Batch processing (Phase 2) is REQUIRED before launch but is a mandatory owner-design checkpoint:** it must not be designed or implemented until Phil approves how it should work.
 
 ## Phase H — Read-Only Completed-Review Refinement (complete)
@@ -196,9 +210,9 @@ Supabase project: `wcrcllhvgbhykbonopzx` (separate co-owner account).
 - **Phase 0 Slice 1 merged (PR #69, `c6cf6c8`)** — environment and legacy-access hardening delivered and post-merge CI green (run `31565668557`, 24/24 jobs, with the documented deferred-drift skip for `schema-drift-deferred`).
 - **Phase 0 Slice 2 merged (PR #70, `9cc5f6a`)** — current-version invariant and regeneration safety delivered and post-merge CI green (run `31605446557`, 24/24 jobs). Etsy application-level pre-side-effect authorization is intentionally deferred to the Etsy activation phase.
 - **Phase 0 Slice 3 merged (PR #71, `851be71`)** — destination-request deduplication delivered and post-merge CI green (run `31615866708`, 24/24 jobs).
-- **Recovery Foundation Slice 1 merged (PR #72, `2f12de4`)** — retry limits and queue health delivered and post-merge CI green (run `31662919875`, 24/24 jobs). Recovery Foundation Slice 1 is complete; it is not a Phase 0 slice. Scheduled Worker Slice 2 has not begun.
+- **Recovery Foundation Slice 1 merged (PR #72, `2f12de4`)** — retry limits and queue health delivered and post-merge CI green (run `31662919875`, 24/24 jobs). Recovery Foundation Slice 1 is complete; it is not a Phase 0 slice. Scheduled Worker Slice 2 is implemented and merged via PR #73 (`904694c`); production deployment/verification remains open.
 - **Phase H is COMPLETE** (H1–H8 + Phase E/F/G prerequisite corrections, merged at `c65b023` per PR #53). No further Phase H slices are proposed.
-- **Owner-confirmed output requirement (2026-08-09):** the review/publishing workflow must offer **Shopify, Etsy, and a permanent master Listings Spreadsheet** as **mandatory operational destination choices**. **For each approved listing, Phil or Crystal chooses the intended route; a listing is not required to be sent to all three destinations simultaneously.** Etsy is required for overall GM Commerce completion (ROADMAP Milestone 4, now classified as required). The Listings Spreadsheet is append-only and idempotent, written through a **durable export job/outbox with an immutable export ledger** (never claimed atomic with the database), configured from trusted server credentials only, and is **not** a per-listing downloadable file (CSV download is optional backup only). All three adapters are now **implemented** (PRs #66–#68); launch readiness is still pending (Etsy fail-closed until its token store and policy source are configured and verified; Shopify draft-only end-to-end launch verification not yet executed; automatic background processing not yet complete).
+- **Owner-confirmed output requirement (2026-08-09):** the review/publishing workflow must offer **Shopify, Etsy, and a permanent master Listings Spreadsheet** as **mandatory operational destination choices**. **For each approved listing, Phil or Crystal chooses the intended route; a listing is not required to be sent to all three destinations simultaneously.** Etsy is required for overall GM Commerce completion (ROADMAP Milestone 4, now classified as required). The Listings Spreadsheet is append-only and idempotent, written through a **durable export job/outbox with an immutable export ledger** (never claimed atomic with the database), configured from trusted server credentials only, and is **not** a per-listing downloadable file (CSV download is optional backup only). All three adapters are now **implemented** (PRs #66–#68); launch readiness is still pending (Etsy fail-closed until its token store and policy source are configured and verified; Shopify draft-only end-to-end launch verification not yet executed; scheduled Shopify/Spreadsheet worker implemented, with production deployment and operational verification still pending).
 - **GitHub Issues**: Several tasks lack formal Issues. GitHub API access has been intermittent. Issue #46 remains open (see Schema State).
 - **Shopify CSV export**: Phil to provide a current export for GMCOM-014 real-export validation.
 
